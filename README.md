@@ -1,9 +1,45 @@
-# Trazalibre (Arquitectura Modular)
+# Trazalibre (Pizarra y Marcador sobre Pantalla)
 
-**Trazalibre** es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada con precisión de dibujo técnico CAD.
+**Trazalibre** es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada con precisión opcional de dibujo técnico CAD.
 
-> 📚 **¿Buscas la guía paso a paso y todos los controles?**  
-> Consulta el [**Manual de Uso Completo**](MANUAL_DE_USO.md) para conocer en detalle cada herramienta, atajos de teclado, precisión milimétrica, entrada CAD y diagramas vectoriales.
+---
+
+## ✨ ¿Qué es Trazalibre?
+
+Imagina tener un **marcador mágico** con el que puedes dibujar, escribir o señalar directamente sobre el cristal de la pantalla de tu computadora:
+
+* **Dibuja sobre cualquier cosa:** Puedes hacer anotaciones encima de presentaciones de PowerPoint, videos en reproducción, páginas web, documentos PDF, hojas de cálculo o programas de diseño. Tus trazos quedan flotando sobre la pantalla mientras el contenido sigue visible por debajo.
+* **Pensada para todos:** Es la herramienta ideal para **docentes** que dictan clases virtuales o presenciales, **estudiantes** que toman notas visuales, **diseñadores** que señalan correcciones y detalles, **profesionales** que realizan presentaciones de trabajo, y cualquier usuario que necesite explicar algo visualmente de manera rápida.
+* **Sin configuraciones complicadas:** No necesitas instalar programas pesados ni crear cuentas. Abres la aplicación y ya tienes a tu alcance lápices de colores, resaltadores, texto, flechas, figuras geométricas y herramientas de medición milimétrica.
+
+---
+
+## ⚡ Guía de Inicio en 3 Minutos
+
+¡Aprende a dominar Trazalibre en cuatro sencillos pasos!
+
+1. **Abrir la aplicación:**
+   * Ejecuta `bin\Trazalibre.exe` (o compila al instante con doble clic en `build.bat`).
+   * Aparecerá una barra de herramientas elegante y compacta en la esquina superior derecha de tu monitor. Puedes arrastrarla a cualquier lugar de la pantalla que prefieras.
+
+2. **Comenzar a dibujar:**
+   * Haz clic en el icono del **Lápiz** (o pulsa la tecla **`P`**) para realizar trazos libres.
+   * Haz clic en el **Resaltador** (o tecla **`H`**) para subrayar textos o partes importantes sin tapar lo que hay debajo.
+   * Selecciona el color que más te guste en la paleta inferior y ajusta el grosor según lo que necesites.
+
+3. **Volver a usar la computadora con normalidad (`ESC` o `F8`):**
+   * ¿Necesitas hacer clic en un enlace web, cambiar de diapositiva o abrir un archivo mientras tienes dibujos en pantalla?
+   * Presiona la tecla **`ESC`** (o pulsa el atajo global **`F8`** desde cualquier programa).
+   * Pasarás al **Modo Ratón**: tus dibujos se mantendrán visibles en pantalla, pero el cursor atravesará el lienzo de forma transparente para que puedas usar tu computadora normalmente.
+   * Cuando quieras volver a dibujar, presiona **`F8`** o pulsa la tecla **`P`**.
+
+4. **Tomar una captura rápida y compartirla (`Ctrl + S`):**
+   * Presiona **`Ctrl + S`** (o el botón **`📸 Capturar Sector`**).
+   * La pantalla se atenuará levemente. Haz clic y arrastra un recuadro sobre la zona que quieres recortar.
+   * Al soltar el ratón, la imagen se guardará automáticamente en formato PNG y **se copiará al portapapeles**. ¡Solo presiona **`Ctrl + V`** para pegarla en WhatsApp, Telegram, correo electrónico, Word o tu programa favorito!
+
+> 📚 **¿Buscas el manual exhaustivo y los controles avanzados?**  
+> Consulta el [**Manual de Uso Completo**](MANUAL_DE_USO.md) para conocer en detalle cada herramienta, atajos de teclado, instrumentos geométricos graduados, precisión milimétrica, entrada CAD y diagramas vectoriales.
 
 ---
 

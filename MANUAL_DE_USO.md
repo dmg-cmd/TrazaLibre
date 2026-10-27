@@ -5,37 +5,76 @@
 
 ## 📖 Índice General
 
-1. [Introducción y Concepto](#1-introducción-y-concepto)
-2. [Requisitos y Modo de Compilación](#2-requisitos-y-modo-de-compilación)
-3. [La Barra de Herramientas Flotante](#3-la-barra-de-herramientas-flotante)
-4. [Herramientas Principales de Anotación](#4-herramientas-principales-de-anotación)
-5. [Formas Geométricas y Globos de Texto](#5-formas-geométricas-y-globos-de-texto)
-6. [Instrumentos de Dibujo Técnico y Geometría](#6-instrumentos-de-dibujo-técnico-y-geometría)
-7. [Modo Vectorial y Diagramas Técnicos](#7-modo-vectorial-y-diagramas-técnicos)
-8. [Sistema de Precisión Milimétrica y Entrada CAD](#8-sistema-de-precisión-milimétrica-y-entrada-cad)
-9. [Imantación a Extremos (Endpoint Snapping)](#9-imantación-a-extremos-endpoint-snapping)
-10. [Sellos de Revisión y Numeración Secuencial](#10-sellos-de-revisión-y-numeración-secuencial)
-11. [Modos de Fondo (Pizarra y Pantalla Transparente)](#11-modos-de-fondo-pizarra-y-pantalla-transparente)
-12. [Herramienta de Captura de Sector (Screenshot)](#12-herramienta-de-captura-de-sector-screenshot)
-13. [Tabla Completa de Atajos de Teclado](#13-tabla-completa-de-atajos-de-teclado)
-14. [Preguntas Frecuentes y Solución de Problemas](#14-preguntas-frecuentes-y-solución-de-problemas)
+1. [Introducción: El Marcador Mágico para tu Pantalla](#1-introducción-el-marcador-mágico-para-tu-pantalla)
+2. [Guía de Inicio Rápido en 3 Minutos](#2-guía-de-inicio-rápido-en-3-minutos)
+3. [Requisitos y Modo de Compilación](#3-requisitos-y-modo-de-compilación)
+4. [La Barra de Herramientas Flotante](#4-la-barra-de-herramientas-flotante)
+5. [Herramientas Principales de Anotación](#5-herramientas-principales-de-anotación)
+6. [Formas Geométricas y Globos de Texto](#6-formas-geométricas-y-globos-de-texto)
+7. [Instrumentos de Dibujo Técnico y Geometría](#7-instrumentos-de-dibujo-técnico-y-geometría)
+8. [Modo Vectorial y Diagramas Técnicos](#8-modo-vectorial-y-diagramas-técnicos)
+9. [Sistema de Precisión Milimétrica y Entrada CAD](#9-sistema-de-precisión-milimétrica-y-entrada-cad)
+10. [Imantación a Extremos (Endpoint Snapping)](#10-imantación-a-extremos-endpoint-snapping)
+11. [Sellos de Revisión y Numeración Secuencial](#11-sellos-de-revisión-y-numeración-secuencial)
+12. [Modos de Fondo (Pizarra y Pantalla Transparente)](#12-modos-de-fondo-pizarra-y-pantalla-transparente)
+13. [Herramienta de Captura de Sector (Screenshot)](#13-herramienta-de-captura-de-sector-screenshot)
+14. [Tabla Completa de Atajos de Teclado](#14-tabla-completa-de-atajos-de-teclado)
+15. [Preguntas Frecuentes y Solución de Problemas](#15-preguntas-frecuentes-y-solución-de-problemas)
 
 ---
 
-## 1. Introducción y Concepto
+## 1. Introducción: El Marcador Mágico para tu Pantalla
 
-**Trazalibre** es una solución integral y modular para la anotación sobre pantalla, pizarra digital interactiva y dibujo geométrico de precisión inspirada en *IPEVO Annotator*. 
+¿Alguna vez deseaste poder tomar un rotulador o marcador y rayar directamente sobre la pantalla de tu computadora para explicar una idea, corregir un trabajo o destacar un detalle importante durante una videollamada? 
 
-A diferencia de las pizarras convencionales, Trazalibre combina:
-- **Anotación libre sobre el escritorio de Windows** sin interferir con las aplicaciones que estés ejecutando.
-- **Instrumentos de dibujo técnico graduados** (Regla, Escuadras de 45° y 30°/60°, Transportador 360° y Compás).
-- **Entrada milimétrica exacta tipo CAD** (calibrada a escala real de 5 píxeles por milímetro).
-- **Diagramas vectoriales asistidos** con cálculo automático de módulos y ángulos de inclinación.
-- **Sellos visuales y numeración correlativa** para corrección de planos, código y documentos.
+**Trazalibre** convierte exactamente ese deseo en realidad: actúa como una lámina transparente e invisible colocada sobre tu monitor, permitiéndote dibujar, escribir notas, colocar flechas y resaltar cualquier elemento visible en tu equipo.
+
+### 👥 ¿Para quién está pensado?
+- **Docentes y educadores:** Dicta clases virtuales más dinámicas por Zoom, Google Meet o Microsoft Teams. Subraya textos de libros digitales, resuelve ejercicios matemáticos paso a paso o explica diagramas en vivo sobre diapositivas.
+- **Estudiantes:** Resume lecturas, señala conceptos clave en PDFs y documentos, o resuelve guías de estudio visuales de manera interactiva.
+- **Diseñadores y creativos:** Marca correcciones directamente sobre maquetas, bocetos, imágenes o páginas web sin necesidad de abrir editores gráficos complejos.
+- **Profesionales en reuniones y presentaciones:** Señala números en hojas de cálculo, destaca gráficos estadísticos o guía la atención de tu audiencia exactamente hacia el punto que estás exponiendo.
+- **Cualquier usuario común:** Captura información de la pantalla con notas personalizadas para enviarla por WhatsApp o correo en cuestión de segundos.
+
+### 🌟 Lo que hace especial a Trazalibre
+1. **Dibuja sobre cualquier aplicación:** Tus notas flotan limpiamente sobre navegadores web, videos, documentos de Word, programas de ingeniería o el propio escritorio de Windows.
+2. **Cero dependencias pesadas:** No requiere instalaciones complicadas ni cuentas en la nube. Es un programa ultraligero que inicia en milisegundos.
+3. **Versatilidad total:** Desde garabatos rápidos y anotaciones cotidianas hasta instrumentos de dibujo técnico graduados con precisión milimétrica (reglas, escuadras, compás y transportador) para cuando necesites exactitud geométrica.
 
 ---
 
-## 2. Requisitos y Modo de Compilación
+## 2. Guía de Inicio Rápido en 3 Minutos
+
+¡Comienza a utilizar Trazalibre en solo 4 pasos sencillos!
+
+### Paso 1: Abrir la aplicación
+- Haz doble clic sobre el archivo ejecutable `bin\Trazalibre.exe` (o compila automáticamente haciendo doble clic en `build.bat`).
+- Se abrirá una barra de herramientas moderna y oscura en la esquina superior derecha de la pantalla.
+- Puedes hacer clic sobre cualquier espacio libre de esa barra para arrastrarla y acomodarla donde te resulte más cómoda.
+
+### Paso 2: Dibujar y resaltar al instante
+- **Para dibujar libremente:** Pulsa el icono del lápiz en la barra o presiona la tecla **`P`**. Haz clic izquierdo y arrastra el ratón para trazar.
+- **Para resaltar sin tapar el texto:** Pulsa el resaltador o la tecla **`H`**. Su trazo translúcido resalta palabras o datos importantes manteniendo la legibilidad del fondo.
+- **Para cambiar el color y grosor:** Haz clic en cualquiera de los botones de color de la barra (Rojo, Amarillo, Verde, Azul, Negro, Blanco) y usa las teclas **`1`**, **`2`**, **`3`** o **`4`** (o el deslizador) para cambiar el tamaño del trazo.
+- **Para borrar:** Pulsa la tecla **`E`** (Borrador) y toca cualquier trazo para eliminarlo, o presiona **`Ctrl + Z`** para deshacer la última acción. Si deseas limpiar toda la pantalla de golpe, pulsa la tecla **`C`**.
+
+### Paso 3: Volver a usar la computadora con normalidad (`ESC` o `F8`)
+- Cuando estás dibujando, el lienzo captura los clics del ratón. Si necesitas hacer clic en un enlace web, cambiar la página de un PDF o abrir otra ventana sin cerrar Trazalibre:
+  - Presiona la tecla **`ESC`** (o pulsa el botón del ratón `🖱️ Ratón [ESC]` en la barra).
+  - También puedes presionar la tecla rápida global **`F8`** en cualquier momento, incluso si estás dentro de PowerPoint, Chrome o Word.
+- **Modo Ratón activado:** Tus dibujos permanecen intactos en la pantalla, pero el cursor atraviesa el lienzo libremente para que puedas usar tu computadora con total normalidad.
+- **Para volver a dibujar:** Vuelve a presionar **`F8`** o pulsa la tecla **`P`**.
+
+### Paso 4: Tomar una captura rápida y compartirla (`Ctrl + S`)
+- Cuando hayas terminado tu explicación y desees compartirla:
+  - Presiona la combinación de teclas **`Ctrl + S`** (o el botón **`📸 Capturar Sector`**).
+  - La pantalla se atenuará levemente. Haz clic izquierdo y arrastra un recuadro para seleccionar el sector que deseas capturar.
+  - Al soltar el ratón ocurrirá la magia: la captura se guardará como un archivo PNG con fecha y hora en la carpeta del programa, y **quedará copiada automáticamente en tu portapapeles**.
+  - Abre WhatsApp Web, Telegram, Word o tu correo electrónico y presiona **`Ctrl + V`** para pegar y enviar tu anotación al instante.
+
+---
+
+## 3. Requisitos y Modo de Compilación
 
 ### Requisitos del Sistema
 - **Sistema Operativo:** Microsoft Windows 7, 8, 10 o 11 (64 bits o 32 bits).
@@ -49,7 +88,7 @@ A diferencia de las pizarras convencionales, Trazalibre combina:
 
 ---
 
-## 3. La Barra de Herramientas Flotante
+## 4. La Barra de Herramientas Flotante
 
 Al iniciar Trazalibre, se mostrará en pantalla una barra flotante oscura, compacta y elegante en el margen superior derecho:
 
@@ -59,7 +98,7 @@ Al iniciar Trazalibre, se mostrará en pantalla una barra flotante oscura, compa
 
 ---
 
-## 4. Herramientas Principales de Anotación
+## 5. Herramientas Principales de Anotación
 
 En la fila superior de la barra se sitúan las 5 herramientas de uso más recurrente:
 
@@ -90,7 +129,7 @@ En la fila superior de la barra se sitúan las 5 herramientas de uso más recurr
 
 ---
 
-## 5. Formas Geométricas y Globos de Texto
+## 6. Formas Geométricas y Globos de Texto
 
 Desplegando el menú **`🔷 Formas:`** o usando sus atajos directos:
 
@@ -106,7 +145,7 @@ Desplegando el menú **`🔷 Formas:`** o usando sus atajos directos:
 
 ---
 
-## 6. Instrumentos de Dibujo Técnico y Geometría
+## 7. Instrumentos de Dibujo Técnico y Geometría
 
 Desplegando el menú **`📐 Geometría:`** accedes a una suite completa de instrumentos técnicos graduados con medición en tiempo real:
 
@@ -140,7 +179,7 @@ Desplegando el menú **`📐 Geometría:`** accedes a una suite completa de inst
 
 ---
 
-## 7. Modo Vectorial y Diagramas Técnicos
+## 8. Modo Vectorial y Diagramas Técnicos
 
 Trazalibre cuenta con un motor especializado para física, ingeniería y matemáticas vectoriales:
 
@@ -160,7 +199,7 @@ Trazalibre cuenta con un motor especializado para física, ingeniería y matemá
 
 ---
 
-## 8. Sistema de Precisión Milimétrica y Entrada CAD
+## 9. Sistema de Precisión Milimétrica y Entrada CAD
 
 Todas las herramientas de dibujo técnico incorporan una escala calibrada:
 $$\text{Escala:} \quad 5\text{ píxeles} = 1\text{ milímetro} \quad (50\text{ px} = 1\text{ cm})$$
@@ -185,7 +224,7 @@ $$\text{Escala:} \quad 5\text{ píxeles} = 1\text{ milímetro} \quad (50\text{ p
 
 ---
 
-## 9. Imantación a Extremos (Endpoint Snapping)
+## 10. Imantación a Extremos (Endpoint Snapping)
 
 El servicio `SnapService` examina continuamente las figuras trazadas en el lienzo para facilitarte la continuidad del dibujo:
 
@@ -197,7 +236,7 @@ El servicio `SnapService` examina continuamente las figuras trazadas en el lienz
 
 ---
 
-## 10. Sellos de Revisión y Numeración Secuencial
+## 11. Sellos de Revisión y Numeración Secuencial
 
 Para agilizar la corrección de trabajos, diagramas de flujo y revisiones visuales:
 
@@ -215,7 +254,7 @@ Para agilizar la corrección de trabajos, diagramas de flujo y revisiones visual
 
 ---
 
-## 11. Modos de Fondo (Pizarra y Pantalla Transparente)
+## 12. Modos de Fondo (Pizarra y Pantalla Transparente)
 
 En la sección inferior de la barra puedes alternar el entorno de trabajo:
 
@@ -225,7 +264,7 @@ En la sección inferior de la barra puedes alternar el entorno de trabajo:
 
 ---
 
-## 12. Herramienta de Captura de Sector (Screenshot)
+## 13. Herramienta de Captura de Sector (Screenshot)
 
 Trazalibre incluye un capturador interactivo de alta fidelidad:
 
@@ -241,7 +280,7 @@ Trazalibre incluye un capturador interactivo de alta fidelidad:
 
 ---
 
-## 13. Tabla Completa de Atajos de Teclado
+## 14. Tabla Completa de Atajos de Teclado
 
 ### 🎮 Control General y Modos
 | Atajo | Acción |
@@ -300,7 +339,7 @@ Trazalibre incluye un capturador interactivo de alta fidelidad:
 
 ---
 
-## 14. Preguntas Frecuentes y Solución de Problemas
+## 15. Preguntas Frecuentes y Solución de Problemas
 
 #### 1. ¿Cómo vuelvo a interactuar con las carpetas o ventanas de Windows sin cerrar Trazalibre?
 Simplemente pulsa la tecla **`ESC`** o el atajo global **`F8`**. Entrarás al instante en el **Modo Ratón**, donde el puntero traspasa el lienzo y puedes hacer clic en cualquier programa de tu equipo.
