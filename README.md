@@ -1,6 +1,9 @@
 # Trazalibre (Arquitectura Modular)
 
-**Trazalibre** es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada.
+**Trazalibre** es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada con precisión de dibujo técnico CAD.
+
+> 📚 **¿Buscas la guía paso a paso y todos los controles?**  
+> Consulta el [**Manual de Uso Completo**](MANUAL_DE_USO.md) para conocer en detalle cada herramienta, atajos de teclado, precisión milimétrica, entrada CAD y diagramas vectoriales.
 
 ---
 
@@ -11,7 +14,8 @@ El proyecto está diseñado para que cualquier funcionalidad o herramienta pueda
 ```text
 G:\Trazalibre\
 │   build.bat                    <- Compilador automático recursivo con icono
-│   README.md                    <- Documentación y guía de desarrollo
+│   README.md                    <- Documentación general y arquitectura
+│   MANUAL_DE_USO.md             <- Manual de usuario exhaustivo paso a paso
 │
 ├───src\
 │   │   Program.cs               <- Inyección de dependencias y composición
