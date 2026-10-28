@@ -95,6 +95,7 @@ Al iniciar Trazalibre, se mostrará en pantalla una barra flotante oscura, compa
 - **Desplazamiento:** Puedes hacer clic sobre cualquier sector libre de la barra y arrastrarla a la posición de la pantalla que te resulte más cómoda.
 - **Botón de Cierre (✕):** Ubicado en la esquina superior derecha del encabezado, cierra de inmediato la aplicación y libera todos los recursos del sistema.
 - **Persistencia Visual:** La barra permanece siempre visible por encima de cualquier ventana (`Topmost`), permitiéndote cambiar de herramienta en cualquier momento.
+- **Acceso Rápido Técnico:** Incorpora botones dedicados para **Ejes Coordenados (0, 0)** con controles de incremento `[ ➖ ]` / `[ ➕ ]`, botón de **Vector con Medidas**, conmutadores de Modo Vector (`V`) y Cota Técnica (`D`), además de los menús desplegables de Formas y Geometría.
 
 ---
 
@@ -149,6 +150,17 @@ Desplegando el menú **`🔷 Formas:`** o usando sus atajos directos:
 
 Desplegando el menú **`📐 Geometría:`** accedes a una suite completa de instrumentos técnicos graduados con medición en tiempo real:
 
+### 🌐 Ejes de Coordenadas Cartesianos (`G`)
+- Muestra un sistema completo de ejes coordenados ortogonales ($X$ horizontal e $Y$ vertical).
+- **Cómo incrementarlos:**
+  1. **Arrastrando con el ratón:** Haz clic en el punto donde deseas el origen $(0,0)$ y, sin soltar, arrastra hacia afuera. Los ejes y su graduación se irán incrementando en tiempo real en los 4 cuadrantes. Al soltar, se fijan con ese tamaño.
+  2. **Desde la barra de herramientas:** Pulsa los botones dedicados **`[ ➕ ]`** y **`[ ➖ ]`** situados bajo el botón de ejes para incrementar o reducir la longitud en pasos de $+10\text{ mm}$ (+1 cm).
+  3. **Con la rueda del ratón:** Gira la rueda para ampliar o reducir los ejes dinámicamente (`Shift` para saltos de 25 mm; `Ctrl` para ajuste fino de 1 mm).
+  4. **Con el teclado:** Pulsa las teclas **`+`**, **`↑`** o **`→`** para incrementar (+10 mm; +50 mm con `Shift`), o **`-`**, **`↓`** o **`←`** para reducir.
+- **Graduación numérica incremental:** Incorpora marcas métricas cada 10 mm (1 cm / 50 px) con su numeración correspondiente ($1, 2, 3, 4, 5...$ cm) en los cuatro cuadrantes y rótulos vectoriales de "X", "Y" y "(0,0)".
+- **Punto de anclaje en el origen $(0, 0)$:** Posee un nódulo circular dorado en el centro exacto $(0, 0)$ con imantación prioritaria para `SnapService`.
+- **Uso:** Estampa los ejes con el tamaño deseado. Luego, selecciona **Vector con Medidas** (`V`) o **Línea** (`L`): al acercar el cursor al centro, verás el indicador `🎯 Origen (0, 0)` para anclar y "pegar el primer punto" con precisión absoluta.
+
 ### 📏 Regla Graduada Milimetrada (`M`)
 - Muestra una regla milimétrica realista en pantalla.
 - **Rotación:** Gira la **rueda del ratón** para inclinar la regla en ángulos precisos de grado en grado.
@@ -179,13 +191,25 @@ Desplegando el menú **`📐 Geometría:`** accedes a una suite completa de inst
 
 ---
 
-## 8. Modo Vectorial y Diagramas Técnicos
+## 8. Herramienta de Vector entre Dos Puntos y Modo Vectorial
 
 Trazalibre cuenta con un motor especializado para física, ingeniería y matemáticas vectoriales:
 
-### 🏹 Activación del Modo Vector (`V`)
-- Presiona la tecla **`V`** o pulsa el botón conmutador de la barra de herramientas.
-- Al activarse, cualquier línea recta o trazado realizado con la **Regla**, las **Escuadras**, el **Transportador** o la **Línea Recta** incorporará de forma automática una **punta de flecha orientada** en su extremo final.
+### 🏹 Herramienta Vector con Medidas (`V`)
+- **Propósito:** Trazar vectores entre dos puntos específicos con indicación instantánea de magnitudes y cotas permanentes.
+- **Cómo usarlo:**
+  1. Haz clic en el **Punto 1** (por ejemplo, el origen `🎯 Origen (0, 0)` de los ejes o cualquier vértice previo).
+  2. Arrastra el ratón hacia el **Punto 2**:
+     - Verás la flecha orientada en tiempo real.
+     - Se desplegará una placa flotante HUD con:
+       - **Módulo / Longitud:** en milímetros y centímetros (ej. `45.0 mm (4.50 cm)`).
+       - **Ángulo trigonométrico:** medido en sentido antihorario respecto al semieje $+X$ horizontal (ej. `∠ 36.9°`).
+       - **Componentes cartesianas:** incrementos ortogonales `ΔX` y `ΔY`.
+     - Si el cursor se aproxima a otro extremo, se activará el recuadro magnético (`🧲 Punto Final` o `🧲 Punta de Vector`).
+  3. **Soltar el ratón:** Se estampa atómicamente el vector y su cota técnica con las medidas exactas.
+
+### 🏹 Conmutador de Modo Vector Global
+- Permite que cualquier trazo realizado con la **Regla**, las **Escuadras**, el **Transportador** o la **Línea Recta** incorpore de forma automática una **punta de flecha orientada** en su extremo final.
 
 ### 🏷️ Acotación Técnica Automática (`D`)
 - Presiona la tecla **`D`** para activar la estampa de cotas.
@@ -229,6 +253,7 @@ $$\text{Escala:} \quad 5\text{ píxeles} = 1\text{ milímetro} \quad (50\text{ p
 El servicio `SnapService` examina continuamente las figuras trazadas en el lienzo para facilitarte la continuidad del dibujo:
 
 - Al aproximar el cursor a una distancia de 20 píxeles del inicio o final de cualquier trazo previo, se activará un recuadro verde con la etiqueta:
+  - `🎯 Origen (0, 0)`: Se adhiere magnéticamente al centro exacto del sistema de ejes cartesianos con diana concéntrica dorada para pegar el primer punto.
   - `🧲 Punto Inicial`: Se adhiere al origen del segmento previo.
   - `🧲 Punto Final`: Se adhiere al extremo final.
   - `🧲 Punta de Vector`: Se adhiere a la punta exacta de la flecha vectorial.
@@ -302,6 +327,8 @@ Trazalibre incluye un capturador interactivo de alta fidelidad:
 | **`Q`** | Forma Rectángulo |
 | **`O`** | Forma Elipse / Círculo |
 | **`L`** | Forma Línea recta |
+| **`V`** | **Vector con Medidas** entre dos puntos (módulo mm/cm, ángulo y componentes ΔX, ΔY) |
+| **`G`** | **Ejes de Coordenadas (0, 0)** graduados e incrementables |
 | **`B`** | Globo de diálogo rectangular |
 | **`J`** | Transportador 360° |
 | **`M`** | Regla graduada milimetrada |

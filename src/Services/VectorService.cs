@@ -201,15 +201,23 @@ namespace Trazalibre.Services {
         /// Sobrecarga conveniente para estampar la cota técnica con grosor predeterminado.
         /// </summary>
         public static StrokeCollection CreateDimensionStrokes(Point start, Point end, double lengthPixels, double angleDeg, Color color) {
-            return CreateDimensionStrokes(start, end, lengthPixels, angleDeg, color, 1.5);
+            return CreateDimensionStrokes(start, end, lengthPixels, angleDeg, color, 1.5, false);
         }
 
         /// <summary>
         /// Genera trazos permanentes en el lienzo para estampar la cota técnica (módulo en mm y ángulo).
         /// </summary>
         public static StrokeCollection CreateDimensionStrokes(Point start, Point end, double lengthPixels, double angleDeg, Color color, double thickness) {
+            return CreateDimensionStrokes(start, end, lengthPixels, angleDeg, color, thickness, false);
+        }
+
+        /// <summary>
+        /// Genera trazos permanentes en el lienzo para estampar la cota técnica con medidas (módulo en mm y ángulo sexagesimal).
+        /// Permite forzar la creación cuando una herramienta dedicada (como VectorTool) lo solicita explícitamente.
+        /// </summary>
+        public static StrokeCollection CreateDimensionStrokes(Point start, Point end, double lengthPixels, double angleDeg, Color color, double thickness, bool forceCreate) {
             StrokeCollection strokes = new StrokeCollection();
-            if (!IsVectorMode || !IsDimensionEnabled) return strokes;
+            if (!forceCreate && (!IsVectorMode || !IsDimensionEnabled)) return strokes;
 
             double mm = MetricUnits.PxToMm(lengthPixels);
             string text = string.Format("{0:0.#} mm ∠ {1:0.#}°", mm, angleDeg);

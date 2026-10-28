@@ -26,6 +26,7 @@ namespace Trazalibre.Tools {
         private Point _startPoint;
         private bool _isDrawing = false;
         private Stroke _previewStroke = null;
+        private ShapeSnapVisual _snapVisual;
 
         protected abstract IEnumerable<Point> GeneratePoints(Point start, Point current);
 
@@ -34,6 +35,14 @@ namespace Trazalibre.Tools {
             context.SetClickThrough(false);
             context.Canvas.EditingMode = InkCanvasEditingMode.None;
             context.Canvas.Cursor = Cursors.Cross;
+
+            if (_snapVisual == null) {
+                _snapVisual = new ShapeSnapVisual();
+            }
+            if (!_context.Canvas.Children.Contains(_snapVisual)) {
+                _context.Canvas.Children.Add(_snapVisual);
+            }
+            _snapVisual.ClearSnap();
 
             if (_mouseDownHandler == null) {
                 _mouseDownHandler = OnCanvasMouseDown;
@@ -52,6 +61,9 @@ namespace Trazalibre.Tools {
 
         public void Deactivate(IAnnotationContext context) {
             CleanPreview();
+            if (_snapVisual != null && context != null && context.Canvas != null) {
+                context.Canvas.Children.Remove(_snapVisual);
+            }
             if (context != null && context.Canvas != null && _mouseDownHandler != null) {
                 context.Canvas.PreviewMouseDown -= _mouseDownHandler;
                 context.Canvas.PreviewMouseMove -= _mouseMoveHandler;
@@ -67,6 +79,10 @@ namespace Trazalibre.Tools {
         private void OnCanvasMouseDown(object sender, MouseButtonEventArgs e) {
             if (e.LeftButton != MouseButtonState.Pressed || _context == null) return;
 
+            if (_snapVisual != null) {
+                _snapVisual.ClearSnap();
+            }
+
             Point clickPos = e.GetPosition(_context.Canvas);
             SnapResult snap = SnapService.FindSnapPoint(_context.Canvas.Strokes, clickPos);
             _startPoint = snap.IsSnapped ? snap.Point : clickPos;
@@ -76,7 +92,21 @@ namespace Trazalibre.Tools {
         }
 
         private void OnCanvasMouseMove(object sender, MouseEventArgs e) {
-            if (!_isDrawing || e.LeftButton != MouseButtonState.Pressed || _context == null) return;
+            if (_context == null) return;
+
+            if (!_isDrawing) {
+                // Previsualización de captura magnética en tiempo real antes de hacer clic (para enganchar el primer punto)
+                Point hoverPos = e.GetPosition(_context.Canvas);
+                SnapResult hoverSnap = SnapService.FindSnapPoint(_context.Canvas.Strokes, hoverPos);
+                if (hoverSnap.IsSnapped && _snapVisual != null) {
+                    _snapVisual.SetSnap(hoverSnap.Point, hoverSnap.SnapType);
+                } else if (_snapVisual != null) {
+                    _snapVisual.ClearSnap();
+                }
+                return;
+            }
+
+            if (e.LeftButton != MouseButtonState.Pressed) return;
 
             Point currentPoint = e.GetPosition(_context.Canvas);
             SnapResult endSnap = SnapService.FindSnapPoint(_context.Canvas.Strokes, currentPoint);
@@ -84,20 +114,28 @@ namespace Trazalibre.Tools {
 
             if (endSnap.IsSnapped) {
                 effectiveCurrent = endSnap.Point;
-            } else if ((Keyboard.Modifiers & ModifierKeys.Alt) != ModifierKeys.Alt) {
-                // Cuantizar longitud al milímetro más cercano (5 px = 1 mm)
-                double dx = currentPoint.X - _startPoint.X;
-                double dy = currentPoint.Y - _startPoint.Y;
-                double dist = Math.Sqrt(dx * dx + dy * dy);
-                if (dist > 4.0) {
-                    double snappedDist = MetricUnits.SnapToMm(dist);
-                    double ratio = snappedDist / dist;
-                    effectiveCurrent = new Point(_startPoint.X + dx * ratio, _startPoint.Y + dy * ratio);
+                if (_snapVisual != null) {
+                    _snapVisual.SetSnap(endSnap.Point, endSnap.SnapType);
+                }
+            } else {
+                if (_snapVisual != null) {
+                    _snapVisual.ClearSnap();
+                }
+                if ((Keyboard.Modifiers & ModifierKeys.Alt) != ModifierKeys.Alt) {
+                    // Cuantizar longitud al milímetro más cercano (5 px = 1 mm)
+                    double dx = currentPoint.X - _startPoint.X;
+                    double dy = currentPoint.Y - _startPoint.Y;
+                    double dist = Math.Sqrt(dx * dx + dy * dy);
+                    if (dist > 4.0) {
+                        double snappedDist = MetricUnits.SnapToMm(dist);
+                        double ratio = snappedDist / dist;
+                        effectiveCurrent = new Point(_startPoint.X + dx * ratio, _startPoint.Y + dy * ratio);
+                    } else {
+                        effectiveCurrent = currentPoint;
+                    }
                 } else {
                     effectiveCurrent = currentPoint;
                 }
-            } else {
-                effectiveCurrent = currentPoint;
             }
 
             UpdatePreview(_startPoint, effectiveCurrent);
@@ -107,6 +145,10 @@ namespace Trazalibre.Tools {
         private void OnCanvasMouseUp(object sender, MouseButtonEventArgs e) {
             if (!_isDrawing || _context == null) return;
             _isDrawing = false;
+
+            if (_snapVisual != null) {
+                _snapVisual.ClearSnap();
+            }
 
             Point mouseUpPoint = e.GetPosition(_context.Canvas);
             SnapResult endSnap = SnapService.FindSnapPoint(_context.Canvas.Strokes, mouseUpPoint);
@@ -178,6 +220,43 @@ namespace Trazalibre.Tools {
             };
 
             return new Stroke(points, attrs);
+        }
+    }
+
+    /// <summary>
+    /// Elemento visual flotante para mostrar el indicador de captura magnética (Snap)
+    /// antes y durante el trazado de figuras y vectores (permite "pegar" el punto inicial con precisión).
+    /// </summary>
+    internal class ShapeSnapVisual : FrameworkElement {
+        public bool IsSnapped { get; set; }
+        public Point SnapPoint { get; set; }
+        public string SnapType { get; set; }
+
+        public ShapeSnapVisual() {
+            IsHitTestVisible = false;
+        }
+
+        public void SetSnap(Point p, string type) {
+            IsSnapped = true;
+            SnapPoint = p;
+            SnapType = type;
+            Visibility = Visibility.Visible;
+            InvalidateVisual();
+        }
+
+        public void ClearSnap() {
+            if (IsSnapped) {
+                IsSnapped = false;
+                Visibility = Visibility.Collapsed;
+                InvalidateVisual();
+            }
+        }
+
+        protected override void OnRender(DrawingContext dc) {
+            base.OnRender(dc);
+            if (IsSnapped) {
+                SnapService.DrawSnapIndicator(dc, SnapPoint, SnapType);
+            }
         }
     }
 }

@@ -25,8 +25,10 @@ namespace Trazalibre {
             registry.RegisterTool(new RectangleShapeTool());
             registry.RegisterTool(new EllipseShapeTool());
             registry.RegisterTool(new LineShapeTool());
+            registry.RegisterTool(new VectorTool()); // Vector interactivo entre dos puntos con medidas
 
             // Registrar Módulo Geométrico (Instrumentos de dibujo técnico)
+            registry.RegisterTool(new AxesTool()); // Ejes de coordenadas cartesianos con punto (0, 0)
             registry.RegisterTool(new ProtractorTool());
             registry.RegisterTool(new RulerTool());
             registry.RegisterTool(new Triangle45Tool());

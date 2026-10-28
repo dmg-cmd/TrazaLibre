@@ -87,6 +87,12 @@ namespace Trazalibre.Services {
             } else if (e.Key == Key.L) {
                 _registry.SelectTool("shape_line");
                 e.Handled = true;
+            } else if (e.Key == Key.V) {
+                _registry.SelectTool("shape_vector");
+                e.Handled = true;
+            } else if (e.Key == Key.G) {
+                _registry.SelectTool("geom_axes");
+                e.Handled = true;
             } else if (e.Key == Key.J) {
                 _registry.SelectTool("shape_protractor");
                 e.Handled = true;

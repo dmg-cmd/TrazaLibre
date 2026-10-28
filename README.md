@@ -82,6 +82,8 @@ G:\Trazalibre\
 │   │       RectangleShapeTool.cs <- Rectángulo
 │   │       EllipseShapeTool.cs  <- Círculo y elipse
 │   │       LineShapeTool.cs     <- Línea recta milimetrada
+│   │       VectorTool.cs        <- Vector interactivo entre dos puntos con medidas y componentes
+│   │       AxesTool.cs          <- Ejes de coordenadas cartesianos con punto de anclaje (0, 0)
 │   │       ProtractorTool.cs    <- Transportador interactivo 360° con rueda de ratón y trazado angular
 │   │       RulerTool.cs         <- Regla graduada milimetrada con rotación por rueda y medición px/cm
 │   │       Triangle45Tool.cs    <- Escuadra isósceles 45°-45°-90° con rotación y trazado técnico
@@ -122,6 +124,7 @@ G:\Trazalibre\
 | **`Q`** | Forma **⬜ Rectángulo** (arrastra para encuadrar). |
 | **`O`** | Forma **⭕ Círculo / Elipse** (arrastra para rodear). |
 | **`L`** | Forma **📏 Línea recta** (arrastra para unir). |
+| **`G`** | Geometría **🌐 Ejes Coordenados (0, 0)** (coloca ejes ortogonales graduados con nódulo en el origen; incrementables arrastrando con el ratón, con la rueda, teclas `+`/`-` o botones `[➕]`/`[➖]` en la barra). |
 | **`J`** | Geometría **📐 Transportador 360°** (muestra grados en tiempo real; gira la **rueda del ratón** para ajustar el ángulo exacto de 0° a 360° o ±180°; haz clic y arrastra para trazar una línea con dicho ángulo). |
 | **`M`** | Geometría **📏 Regla Graduada** (regla milimetrada con rotación por rueda de ratón y medición en px y cm). |
 | *Menú* | Geometría **📐 Escuadra 45°** (escuadra isósceles 45°-45°-90° con rotación por rueda para trazar a 45° y 90°). |
@@ -142,8 +145,25 @@ G:\Trazalibre\
 | **`C`** | **Limpiar** todos los trazos de la pantalla. |
 | **`Ctrl + Z`** | **Deshacer** el último trazo. |
 | **`Ctrl + S`** | **Capturar sector de pantalla:** Activa el selector interactivo para arrastrar con el ratón el sector a capturar, guardar en PNG y copiar al portapapeles (`ESC` para cancelar). |
-| **`V`** | **Modo Vector / Flecha:** Alterna en cualquier momento entre **Línea recta** y **Vector orientado** con punta de flecha en el extremo (funciona en la Regla, Escuadras, Transportador y Línea recta). |
+| **`V`** | Herramienta **🏹 Vector con Medidas:** Traza un vector entre dos puntos con visor en tiempo real de módulo en mm/cm, ángulo trigonométrico y componentes $\Delta X, \Delta Y$, estampando la cota técnica permanente. |
 | **`D`** | **Acotación Vectorial (Módulo y Ángulo):** Alterna el estampado automático de la cota técnica en el lienzo con el formato `[módulo mm ∠ ángulo°]` perpendicular al vector. |
+
+---
+
+## 🌐 Ejes de Coordenadas Cartesianos y Vectores con Medidas
+
+Trazalibre incorpora soporte completo para diagramas de física, matemáticas y geometría analítica:
+
+* **🌐 Ejes de Coordenadas Cartesianos (`G`):**
+  * Coloca un sistema completo de ejes ortogonales graduados con flechas direccionales en $+X$ e $+Y$.
+  * **Punto de anclaje magnético en el origen $(0, 0)$:** Posee un nódulo circular dorado en la intersección exacta que es reconocido de forma prioritaria por `SnapService` (`🎯 Origen (0, 0)`), permitiendo clavar y "pegar el primer punto" con precisión absoluta.
+  * **Incremento dinámico:** Los ejes pueden incrementarse arrastrando con el ratón hacia afuera desde el origen, con la rueda del ratón, con las teclas `+` y `-`, o mediante los botones dedicados **`[ ➕ ]`** y **`[ ➖ ]`** en la barra flotante.
+  * **Graduación numérica incremental:** Cada centímetro (10 mm / 50 px) incluye marcas métricas con su correspondiente número ($1, 2, 3, 4, 5...$ cm) en los cuatro cuadrantes.
+
+* **🏹 Vector entre Dos Puntos con Medidas (`V`):**
+  * Permite hacer clic en el Punto 1 (ej. en el origen `🎯 Origen (0, 0)`) y arrastrar hacia el Punto 2.
+  * Muestra una placa flotante HUD en tiempo real con el **Módulo** en mm y cm, el **Ángulo trigonométrico cartesiano** (`∠ θ°`) y las **Componentes ortogonales** ($\Delta X$ y $\Delta Y$).
+  * Al soltar, estampa el vector con su punta de flecha y la cota técnica de medidas permanente.
 
 ---
 

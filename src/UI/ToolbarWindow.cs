@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using Trazalibre.Core;
 using Trazalibre.Services;
+using Trazalibre.Tools;
 
 namespace Trazalibre.UI {
     public class ToolbarWindow : Window {
@@ -25,6 +26,8 @@ namespace Trazalibre.UI {
         private Border _shapeContainerBorder;
         private ComboBox _geometryComboBox;
         private Border _geometryContainerBorder;
+        private Button _axesButton;
+        private Button _vectorButton;
         private ComboBox _stampComboBox;
         private Border _stampContainerBorder;
         private TextBox _numberTextBox;
@@ -151,6 +154,7 @@ namespace Trazalibre.UI {
             // 2. Desplegable de Formas Geométricas y Globos de Texto
             _shapeContainerBorder = CreateDropdownRow("🔷 Formas:", out _shapeComboBox);
             string[] shapeIds = new string[] {
+                "shape_vector",
                 "shape_arrow",
                 "shape_rect",
                 "shape_ellipse",
@@ -181,6 +185,8 @@ namespace Trazalibre.UI {
             // 2b. Desplegable de Módulo Geométrico (Instrumentos de dibujo técnico)
             _geometryContainerBorder = CreateDropdownRow("📐 Geometría:", out _geometryComboBox);
             string[] geometryIds = new string[] {
+                "geom_axes",
+                "shape_vector",
                 "shape_protractor",
                 "geom_ruler",
                 "geom_triangle45",
@@ -205,6 +211,113 @@ namespace Trazalibre.UI {
                 }
             };
             mainStack.Children.Add(_geometryContainerBorder);
+
+            // Botón dedicado de Ejes Coordenados (0, 0) [G]
+            _axesButton = new Button {
+                Content = "🌐 Ejes Coordenados (0, 0) [G]",
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(160, 45, 50, 60)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(100, 0, 162, 255)),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 4, 6, 4),
+                Margin = new Thickness(0, 0, 0, 4),
+                FontSize = 10.5,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand
+            };
+            _axesButton.Click += (s, e) => {
+                _toolRegistry.SelectTool("geom_axes");
+            };
+            mainStack.Children.Add(_axesButton);
+
+            // Fila de control de incremento para los Ejes de Coordenadas
+            Grid axesSizeGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+            axesSizeGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            axesSizeGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            axesSizeGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            Button btnAxesDec = new Button {
+                Content = "➖",
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(140, 50, 53, 59)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                Width = 28,
+                Height = 22,
+                Cursor = Cursors.Hand,
+                ToolTip = "Reducir tamaño de ejes (-10 mm)"
+            };
+
+            TextBlock txtAxesSize = new TextBlock {
+                Text = string.Format("Ejes: {0:0} mm", MetricUnits.PxToMm(AxesTool.SharedAxisHalfLength)),
+                Foreground = Brushes.LightCyan,
+                FontSize = 10.0,
+                FontWeight = FontWeights.SemiBold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            Button btnAxesInc = new Button {
+                Content = "➕",
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(140, 50, 53, 59)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                Width = 28,
+                Height = 22,
+                Cursor = Cursors.Hand,
+                ToolTip = "Incrementar tamaño de ejes (+10 mm)"
+            };
+
+            Action updateAxesSizeLabel = () => {
+                txtAxesSize.Text = string.Format("Ejes: {0:0} mm", MetricUnits.PxToMm(AxesTool.SharedAxisHalfLength));
+            };
+
+            btnAxesDec.Click += (s, e) => {
+                AxesTool tool = FindTool("geom_axes") as AxesTool;
+                if (tool != null) tool.DecreaseSize(10.0);
+                else AxesTool.SharedAxisHalfLength = Math.Max(50.0, AxesTool.SharedAxisHalfLength - MetricUnits.MmToPx(10.0));
+                updateAxesSizeLabel();
+            };
+
+            btnAxesInc.Click += (s, e) => {
+                AxesTool tool = FindTool("geom_axes") as AxesTool;
+                if (tool != null) tool.IncreaseSize(10.0);
+                else AxesTool.SharedAxisHalfLength = Math.Min(900.0, AxesTool.SharedAxisHalfLength + MetricUnits.MmToPx(10.0));
+                updateAxesSizeLabel();
+            };
+
+            AxesTool.AxisLengthChanged += (s, newLen) => {
+                updateAxesSizeLabel();
+            };
+
+            Grid.SetColumn(btnAxesDec, 0);
+            Grid.SetColumn(txtAxesSize, 1);
+            Grid.SetColumn(btnAxesInc, 2);
+
+            axesSizeGrid.Children.Add(btnAxesDec);
+            axesSizeGrid.Children.Add(txtAxesSize);
+            axesSizeGrid.Children.Add(btnAxesInc);
+
+            mainStack.Children.Add(axesSizeGrid);
+
+            // Botón dedicado de Vector (2 Puntos) con Medidas [V]
+            _vectorButton = new Button {
+                Content = "🏹 Vector con Medidas [V]",
+                Foreground = Brushes.Gold,
+                Background = new SolidColorBrush(Color.FromArgb(160, 45, 50, 60)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(120, 255, 215, 0)),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 4, 6, 4),
+                Margin = new Thickness(0, 0, 0, 4),
+                FontSize = 10.5,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand
+            };
+            _vectorButton.Click += (s, e) => {
+                _toolRegistry.SelectTool("shape_vector");
+            };
+            mainStack.Children.Add(_vectorButton);
 
             // Botón conmutador de Modo Vector / Diagramas vectoriales [V]
             Button vectorToggleBtn = new Button {
@@ -504,6 +617,8 @@ namespace Trazalibre.UI {
                 case "shape_rect": return " [Q]";
                 case "shape_ellipse": return " [O]";
                 case "shape_line": return " [L]";
+                case "shape_vector": return " [V]";
+                case "geom_axes": return " [G]";
                 case "shape_protractor": return " [J]";
                 case "geom_ruler": return " [M]";
                 case "geom_compass": return " [U]";
@@ -556,6 +671,22 @@ namespace Trazalibre.UI {
             } else if (_shapeContainerBorder != null) {
                 _shapeContainerBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255));
                 _shapeContainerBorder.Background = new SolidColorBrush(Color.FromArgb(120, 45, 48, 54));
+            }
+
+            // Actualizar botón dedicado de ejes de coordenadas
+            if (_axesButton != null) {
+                bool isAxes = activeId.Equals("geom_axes", StringComparison.OrdinalIgnoreCase);
+                _axesButton.Background = isAxes ? new SolidColorBrush(Color.FromArgb(200, 0, 122, 204)) : new SolidColorBrush(Color.FromArgb(160, 45, 50, 60));
+                _axesButton.BorderBrush = isAxes ? Brushes.Gold : new SolidColorBrush(Color.FromArgb(100, 0, 162, 255));
+                _axesButton.Foreground = isAxes ? Brushes.Gold : Brushes.White;
+            }
+
+            // Actualizar botón dedicado de vector con medidas
+            if (_vectorButton != null) {
+                bool isVector = activeId.Equals("shape_vector", StringComparison.OrdinalIgnoreCase);
+                _vectorButton.Background = isVector ? new SolidColorBrush(Color.FromArgb(200, 0, 122, 204)) : new SolidColorBrush(Color.FromArgb(160, 45, 50, 60));
+                _vectorButton.BorderBrush = isVector ? Brushes.Gold : new SolidColorBrush(Color.FromArgb(120, 255, 215, 0));
+                _vectorButton.Foreground = isVector ? Brushes.Gold : Brushes.White;
             }
 
             // Actualizar selector de geometría
