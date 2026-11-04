@@ -1,5 +1,5 @@
-# Manual de Uso Oficial de Trazalibre
-*Aplicación de Anotación en Pantalla, Pizarra Interactiva y Dibujo Técnico CAD*
+# Manual de Uso Oficial de Trazalibre (`v1.3.1`)
+*Aplicación de Anotación en Pantalla, Pizarra Interactiva y Dibujo Técnico CAD — Versión actual: **v1.3.1***
 
 ---
 
@@ -49,7 +49,7 @@
 
 ### Paso 1: Abrir la aplicación
 - Haz doble clic sobre el archivo ejecutable `bin\Trazalibre.exe` (o compila automáticamente haciendo doble clic en `build.bat`).
-- Aparecerá de inmediato la **Pantalla de Inicio** con el icono oficial, la versión del programa, una barra de progreso animada y el aviso *"Iniciando Trazalibre, por favor espere..."*, confirmando al instante que la aplicación se está cargando.
+- Gracias al sistema de **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, aparecerá de inmediato la **Pantalla de Inicio** con el icono oficial, la versión (`v1.3.1`), una barra de progreso fluida y una **carga progresiva en 4 etapas animadas** (*"⏳ Iniciando Trazalibre, por favor espere..."*, carga de instrumentos CAD, preparación del lienzo multimonitor y configuración de barra/atajos).
 - Acto seguido, se abrirá la barra de herramientas flotante en la esquina superior derecha de la pantalla con el indicador verde **`● Activo`** en su encabezado.
 - Puedes hacer clic sobre cualquier espacio libre de esa barra para arrastrarla y acomodarla donde te resulte más cómoda, o cambiar su aspecto visual entre **🌙 Oscuro**, **☀️ Claro** y **🔷 Azul CAD**.
 
@@ -91,7 +91,7 @@
 
 ## 4. La Barra de Herramientas Flotante
 
-Al iniciar Trazalibre, tras la pantalla de bienvenida animada (`SplashWindow`), se mostrará en pantalla la barra flotante compacta y elegante en el margen superior derecho:
+Al iniciar Trazalibre, tras la pantalla de bienvenida de arranque instantáneo (`SplashWindow`) y su carga progresiva en 4 etapas, se mostrará en pantalla la barra flotante compacta y elegante en el margen superior derecho:
 
 - **Indicador de Estado (`● Activo`):** Situado en el encabezado junto al título y número de versión, confirma visualmente en todo momento que Trazalibre se encuentra en ejecución.
 - **Selector de Tema / Aspecto Visual (`🌙 Oscuro` / `☀️ Claro` / `🔷 Azul CAD`):** Ubicado en el encabezado superior, permite alternar en vivo toda la paleta visual de la barra flotante entre tres estilos profesionales:

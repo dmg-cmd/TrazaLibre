@@ -1,6 +1,6 @@
-# Trazalibre (Pizarra y Marcador sobre Pantalla)
+# Trazalibre (Pizarra y Marcador sobre Pantalla) — `v1.3.1`
 
-**Trazalibre** es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada con precisión opcional de dibujo técnico CAD.
+**Trazalibre** (`v1.3.1`) es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada con precisión opcional de dibujo técnico CAD.
 
 ---
 
@@ -20,7 +20,7 @@ Imagina tener un **marcador mágico** con el que puedes dibujar, escribir o señ
 
 1. **Abrir la aplicación:**
    * Ejecuta `bin\Trazalibre.exe` (o compila al instante con doble clic en `build.bat`).
-   * Se mostrará la **Pantalla de Inicio** con el icono oficial, versión, barra de progreso animada y el aviso *"Iniciando Trazalibre, por favor espere..."*.
+   * Gracias al **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, se mostrará de inmediato la **Pantalla de Inicio** con el icono oficial, versión (`v1.3.1`), barra de progreso animada y **carga progresiva en 4 etapas** (*"⏳ Iniciando Trazalibre, por favor espere..."*).
    * A continuación aparecerá la barra de herramientas flotante en la esquina superior derecha con el indicador **`● Activo`** y el selector de tema (**🌙 Oscuro**, **☀️ Claro** o **🔷 Azul CAD**). Puedes arrastrarla a cualquier lugar de la pantalla que prefieras.
 
 2. **Comenzar a dibujar:**
@@ -55,8 +55,8 @@ G:\Trazalibre\
 │   MANUAL_DE_USO.md             <- Manual de usuario exhaustivo paso a paso
 │
 ├───src\
-│   │   Program.cs               <- Inyección de dependencias y composición
-│   │   AssemblyInfo.cs          <- Metadatos de ensamblado e información de versión Win32
+│   │   Program.cs               <- Arranque en dos fases con desacoplamiento JIT (NoInlining) y composición en 4 etapas
+│   │   AssemblyInfo.cs          <- Metadatos de ensamblado e información de versión Win32 (v1.3.1)
 │   │   app.ico                  <- Icono oficial multirresolución Win32
 │   │
 │   ├───Core\                    <- Contratos e interfaces base (Sin dependencias externas)
@@ -105,7 +105,7 @@ G:\Trazalibre\
 │   │       NumberStampTool.cs   <- Sello de número secuencial interactivo
 │   │
 │   └───UI\                      <- Vistas desacopladas
-│           SplashWindow.cs      <- Pantalla de inicio animada con icono oficial, versión y barra de progreso
+│           SplashWindow.cs      <- Pantalla de inicio ultraligera (sin efectos pesados) con progreso fluido en 4 etapas
 │           OverlayWindow.cs     <- Lienzo de pantalla completa (implementa IAnnotationContext)
 │           ToolbarWindow.cs     <- Barra flotante dinámica con selector de tema e indicador de estado
 │           SectorSelectionWindow.cs <- Selector interactivo de sector de pantalla con arrastre y guía
@@ -159,9 +159,14 @@ G:\Trazalibre\
 
 ## 🎨 Temas de Interfaz, Pantalla de Inicio y 7 Modos de Lienzo
 
-* **🚀 Pantalla de Inicio e Indicador de Ejecución (`SplashWindow.cs`):**
-  * Al ejecutar `Trazalibre.exe`, se presenta una ventana de bienvenida con el icono oficial, la versión actual, una barra de progreso animada y el aviso `"Iniciando Trazalibre, por favor espere..."`.
-  * En el encabezado de la barra de herramientas principal permanece visible el indicador verde **`● Activo`** que confirma que la aplicación está en ejecución.
+* **🚀 Pantalla de Inicio Instantánea y Arranque en Dos Fases (`Program.cs` / `SplashWindow.cs`):**
+  * **Desacoplamiento JIT (`[MethodImpl(MethodImplOptions.NoInlining)]`):** `Main()` instancia y renderiza `SplashWindow` antes de que el compilador JIT de .NET cargue los 21 módulos de herramientas, servicios y lienzos pesados, logrando que el recuadro de bienvenida aparezca en el mismo instante en que el usuario hace doble clic.
+  * **Renderizado ultraligero y carga progresiva en 4 etapas animadas:** `SplashWindow` prescinde de efectos de sombreado costosos (`DropShadowEffect`) en favor de bordes multicapa e impulsa una barra de progreso suave a través de 4 etapas secuenciales:
+    1. `⏳ Cargando herramientas e instrumentos CAD, espere...` (35%)
+    2. `⏳ Preparando lienzo multimonitor y cuadrículas...` (68%)
+    3. `⏳ Configurando barra de herramientas y atajos...` (92%)
+    4. `✅ ¡Trazalibre listo! Abriendo espacio de trabajo...` (100%)
+  * **Indicador de ejecución permanente:** En el encabezado de la barra de herramientas principal permanece visible el indicador verde **`● Activo`** junto a la versión **`v1.3.1`**, confirmando en todo momento que la aplicación está activa.
 * **🎨 Selector de Aspecto / Tema de la Interfaz (`ThemeService.cs`):**
   * Desde el botón ubicado en el encabezado de la barra de herramientas puedes alternar en tiempo real entre tres temas visuales: **🌙 Oscuro**, **☀️ Claro** y **🔷 Azul CAD**.
 * **🖼️ 7 Modos de Fondo de Pantalla y Lienzos Técnicos (`BackgroundMode.cs` / `BackgroundService.cs`):**

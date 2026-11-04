@@ -1,5 +1,7 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Threading;
 using Trazalibre.Core;
 using Trazalibre.Services;
 using Trazalibre.Tools;
@@ -12,79 +14,103 @@ namespace Trazalibre {
             Application app = new Application();
             app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-            // 0. Mostrar pantalla de inicio e indicador de ejecución inmediata ("Por favor espere")
+            // Mostrar inmediatamente el recuadro de carga antes de compilar los módulos pesados en JIT
             SplashWindow splash = new SplashWindow();
+            splash.ContentRendered += (s, e) => {
+                BeginStagedInitialization(app, splash);
+            };
             splash.Show();
-            splash.SetProgress(0.20, "⏳ Iniciando motor vectorial CAD, por favor espere...");
 
-            // 1. Instanciar el registro de herramientas
+            app.Run();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void BeginStagedInitialization(Application app, SplashWindow splash) {
+            ToolRegistry registry = null;
+            OverlayWindow overlay = null;
+            ToolbarWindow toolbar = null;
+            HotkeyService hotkeyService = null;
+
+            int stage = 0;
+            DispatcherTimer stageTimer = new DispatcherTimer {
+                Interval = TimeSpan.FromMilliseconds(480)
+            };
+
+            stageTimer.Tick += (s, e) => {
+                stage++;
+                if (stage == 1) {
+                    splash.SetProgress(0.35, "⏳ Cargando herramientas e instrumentos CAD, espere...");
+                    registry = CreateAndRegisterTools();
+                } else if (stage == 2) {
+                    splash.SetProgress(0.68, "⏳ Preparando lienzo multimonitor y cuadrículas...");
+                    overlay = new OverlayWindow();
+                    overlay.Show();
+                    registry.Initialize(overlay);
+                    registry.SelectTool("pen");
+                } else if (stage == 3) {
+                    splash.SetProgress(0.92, "⏳ Configurando barra de herramientas y atajos...");
+                    toolbar = new ToolbarWindow(registry, overlay, overlay);
+                    hotkeyService = new HotkeyService(registry, overlay);
+                    hotkeyService.AttachWindow(overlay);
+                    hotkeyService.AttachWindow(toolbar);
+
+                    toolbar.Closed += (sender, args) => {
+                        hotkeyService.Dispose();
+                        overlay.Close();
+                        app.Shutdown();
+                    };
+                } else if (stage == 4) {
+                    splash.SetProgress(1.0, "✅ ¡Trazalibre listo! Abriendo espacio de trabajo...");
+                } else {
+                    stageTimer.Stop();
+                    if (toolbar != null) {
+                        toolbar.Show();
+                    }
+                    splash.Close();
+                }
+            };
+
+            stageTimer.Start();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static ToolRegistry CreateAndRegisterTools() {
             ToolRegistry registry = new ToolRegistry();
             registry.RegisterTool(new MouseTool());
             registry.RegisterTool(new PenTool());
             registry.RegisterTool(new HighlighterTool());
             registry.RegisterTool(new EraserTool());
-            registry.RegisterTool(new TextTool()); // Herramienta de Texto
-            registry.RegisterTool(new InstructionTool()); // Herramienta de Indicación con Flecha (Recta, Curva Vertical/Horizontal)
+            registry.RegisterTool(new TextTool());
+            registry.RegisterTool(new InstructionTool());
 
-            // Registrar formas geométricas interactivas
+            // Formas geométricas interactivas
             registry.RegisterTool(new ArrowShapeTool());
             registry.RegisterTool(new RectangleShapeTool());
             registry.RegisterTool(new EllipseShapeTool());
             registry.RegisterTool(new LineShapeTool());
-            registry.RegisterTool(new VectorTool()); // Vector interactivo entre dos puntos con medidas
+            registry.RegisterTool(new VectorTool());
 
-            // Registrar Módulo Geométrico (Instrumentos de dibujo técnico)
-            registry.RegisterTool(new AxesTool()); // Ejes de coordenadas cartesianos con punto (0, 0)
+            // Módulo Geométrico (Instrumentos de dibujo técnico)
+            registry.RegisterTool(new AxesTool());
             registry.RegisterTool(new ProtractorTool());
             registry.RegisterTool(new RulerTool());
             registry.RegisterTool(new Triangle45Tool());
             registry.RegisterTool(new Triangle30Tool());
             registry.RegisterTool(new CompassTool());
 
-            // Registrar globos de texto con flecha interactivos
+            // Globos de texto con flecha interactivos
             registry.RegisterTool(new RectangularCalloutTool());
             registry.RegisterTool(new OvalCalloutTool());
             registry.RegisterTool(new CloudCalloutTool());
 
-            // Registrar sellos vectoriales
+            // Sellos vectoriales
             registry.RegisterTool(new CheckStampTool());
             registry.RegisterTool(new CrossStampTool());
             registry.RegisterTool(new StarStampTool());
             registry.RegisterTool(new ArrowStampTool());
             registry.RegisterTool(new NumberStampTool());
 
-            splash.SetProgress(0.55, "⏳ Preparando lienzo multimonitor y cuadrículas...");
-
-            // 2. Crear la ventana de lienzo de anotación
-            OverlayWindow overlay = new OverlayWindow();
-            overlay.Show();
-
-            // 3. Conectar el registro al lienzo
-            registry.Initialize(overlay);
-            registry.SelectTool("pen");
-
-            splash.SetProgress(0.85, "⏳ Cargando barra de herramientas y atajos...");
-
-            // 4. Crear la barra de herramientas flotante con jerarquía Owner
-            ToolbarWindow toolbar = new ToolbarWindow(registry, overlay, overlay);
-            toolbar.Show();
-
-            // 5. Servicio de atajos de teclado
-            HotkeyService hotkeyService = new HotkeyService(registry, overlay);
-            hotkeyService.AttachWindow(overlay);
-            hotkeyService.AttachWindow(toolbar);
-
-            splash.SetProgress(1.0, "✅ ¡Trazalibre en ejecución!");
-            splash.CloseAfterDelay(500);
-
-            // 6. Cierre seguro
-            toolbar.Closed += (s, e) => {
-                hotkeyService.Dispose();
-                overlay.Close();
-                app.Shutdown();
-            };
-
-            app.Run();
+            return registry;
         }
     }
 }
