@@ -120,6 +120,7 @@ G:\Trazalibre\
 | **`H`** | Activar herramienta **Resaltador**. |
 | **`E`** | Activar herramienta **Borrador**. |
 | **`T`** | Herramienta **🔤 Texto** (clic para escribir; Enter para fijar; Shift+Enter salto de línea). |
+| **`I`** | Herramienta **📌 Indicación con Flecha** (escribe la indicación, presiona Enter y apunta con flecha Recta, Curva Vertical o Curva Horizontal hacia la referencia). |
 | **`F`** | Forma **🏹 Flecha interactiva** (arrastra para apuntar). |
 | **`Q`** | Forma **⬜ Rectángulo** (arrastra para encuadrar). |
 | **`O`** | Forma **⭕ Círculo / Elipse** (arrastra para rodear). |

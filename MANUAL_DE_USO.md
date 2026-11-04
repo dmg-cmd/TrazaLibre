@@ -139,6 +139,18 @@ Desplegando el menú **`🔷 Formas:`** o usando sus atajos directos:
 - **⭕ Círculo / Elipse (`O`):** Haz clic y arrastra para encerrar elementos en óvalos o círculos regulares.
 - **📏 Línea Recta (`L`):** Une dos puntos mediante un segmento perfectamente recto.
 
+### 📌 Indicación con Flecha Apuntadora Interactiva (`I`)
+- **Flujo en 2 pasos:**
+  1. **Escribir la indicación:** Haz clic en cualquier lugar de la pantalla para colocar la nota explicativa. Se abrirá una caja de texto donde podrás redactar el comentario (`Shift + Enter` para nueva línea; `Enter` para confirmar).
+  2. **Apuntar al elemento de referencia:** Tras confirmar, se activa el modo de apuntado dinámico. Mueve el ratón hacia el elemento o sector al que deseas hacer referencia y verás la flecha trazarse en tiempo real.
+- **Tipos de flecha disponibles:**
+  - **──▶ Recta (`1` o `R`):** Traza una línea directa desde la indicación al objetivo.
+  - **╰▲ Curva con Entrada Vertical (`2` o `V`):** La flecha describe una curva Bézier suave y entra perpendicularmente en el eje vertical (de arriba hacia abajo o de abajo hacia arriba) hacia el objetivo.
+  - **╰▶ Curva con Entrada Horizontal (`3` o `H`):** La flecha describe una curva Bézier suave y entra perpendicularmente en el eje horizontal (de izquierda a derecha o de derecha a izquierda) hacia el objetivo.
+  - **Espacio:** Cicla ágilmente entre los 3 tipos de flecha.
+  - **`ESC` o Clic Derecho:** Cancela la flecha y deja únicamente la indicación textual con su marco.
+- Al hacer clic izquierdo en el objetivo, se estampa la indicación y la flecha en un lote atómico con soporte completo para **`Ctrl + Z` (Deshacer)**.
+
 ### 💬 Globos de Diálogo y Explicaciones (Callouts)
 - **💬 Globo Rectangular con Flecha (`B`):** Arrastra para situar el globo sobre el elemento a explicar. Se abrirá automáticamente un editor de texto interno para redactar la explicación. Presiona `Enter` para fijarlo.
 - **🗨️ Globo Ovalado:** Viñeta redondeada clásica para diálogos o notas descriptivas.
@@ -323,6 +335,7 @@ Trazalibre incluye un capturador interactivo de alta fidelidad:
 | **`H`** | Resaltador semitransparente |
 | **`E`** | Borrador de trazos |
 | **`T`** | Texto editable |
+| **`I`** | **Indicación con Flecha** (Recta, Curva Vertical o Curva Horizontal) |
 | **`F`** | Forma Flecha |
 | **`Q`** | Forma Rectángulo |
 | **`O`** | Forma Elipse / Círculo |

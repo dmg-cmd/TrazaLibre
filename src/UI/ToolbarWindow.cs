@@ -134,9 +134,9 @@ namespace Trazalibre.UI {
             headerGrid.Children.Add(closeBtn);
             mainStack.Children.Add(headerGrid);
 
-            // 1. Herramientas Principales (Botones rápidos: Ratón, Lápiz, Marca, Borra, Texto)
+            // 1. Herramientas Principales (Botones rápidos: Ratón, Lápiz, Marca, Borra, Texto, Indicación)
             WrapPanel mainToolsPanel = new WrapPanel { Margin = new Thickness(0, 0, 0, 6) };
-            string[] primaryToolIds = new string[] { "mouse", "pen", "highlighter", "eraser", "text" };
+            string[] primaryToolIds = new string[] { "mouse", "pen", "highlighter", "eraser", "text", "tool_instruction" };
             foreach (string id in primaryToolIds) {
                 ITool tool = FindTool(id);
                 if (tool != null) {
@@ -156,6 +156,7 @@ namespace Trazalibre.UI {
             string[] shapeIds = new string[] {
                 "shape_vector",
                 "shape_arrow",
+                "tool_instruction",
                 "shape_rect",
                 "shape_ellipse",
                 "shape_line",
@@ -613,6 +614,7 @@ namespace Trazalibre.UI {
                 case "highlighter": return " [H]";
                 case "eraser": return " [E]";
                 case "text": return " [T]";
+                case "tool_instruction": return " [I]";
                 case "shape_arrow": return " [F]";
                 case "shape_rect": return " [Q]";
                 case "shape_ellipse": return " [O]";
@@ -640,7 +642,7 @@ namespace Trazalibre.UI {
 
         private void HighlightActiveTool(string activeId) {
             bool isGeometry = activeId.StartsWith("geom_", StringComparison.OrdinalIgnoreCase) || activeId.Equals("shape_protractor", StringComparison.OrdinalIgnoreCase);
-            bool isShape = !isGeometry && activeId.StartsWith("shape_", StringComparison.OrdinalIgnoreCase);
+            bool isShape = !isGeometry && (activeId.StartsWith("shape_", StringComparison.OrdinalIgnoreCase) || activeId.Equals("tool_instruction", StringComparison.OrdinalIgnoreCase));
             bool isStamp = activeId.StartsWith("stamp_", StringComparison.OrdinalIgnoreCase);
 
             // Actualizar botones principales

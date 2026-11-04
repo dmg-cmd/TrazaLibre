@@ -53,6 +53,16 @@ namespace Trazalibre.Services {
                 return;
             }
 
+            // Si la herramienta activa es la de Indicación con Flecha, permitirle procesar sus opciones
+            if (_registry.ActiveTool != null && _registry.ActiveTool.Id.Equals("tool_instruction", StringComparison.OrdinalIgnoreCase)) {
+                if (e.Key == Key.D1 || e.Key == Key.NumPad1 ||
+                    e.Key == Key.D2 || e.Key == Key.NumPad2 ||
+                    e.Key == Key.D3 || e.Key == Key.NumPad3 ||
+                    e.Key == Key.R || e.Key == Key.V || e.Key == Key.H || e.Key == Key.Space || e.Key == Key.Escape) {
+                    return;
+                }
+            }
+
             // Tecla ESC: Salida inmediata al modo Ratón
             if (e.Key == Key.Escape) {
                 _registry.SelectTool("mouse");
@@ -72,6 +82,9 @@ namespace Trazalibre.Services {
                 e.Handled = true;
             } else if (e.Key == Key.T) {
                 _registry.SelectTool("text");
+                e.Handled = true;
+            } else if (e.Key == Key.I) {
+                _registry.SelectTool("tool_instruction");
                 e.Handled = true;
             }
             // Atajos de Formas Geométricas

@@ -19,6 +19,7 @@ namespace Trazalibre {
             registry.RegisterTool(new HighlighterTool());
             registry.RegisterTool(new EraserTool());
             registry.RegisterTool(new TextTool()); // Herramienta de Texto
+            registry.RegisterTool(new InstructionTool()); // Herramienta de Indicación con Flecha (Recta, Curva Vertical/Horizontal)
 
             // Registrar formas geométricas interactivas
             registry.RegisterTool(new ArrowShapeTool());
