@@ -511,6 +511,192 @@ namespace Trazalibre.UI {
 
             mainStack.Children.Add(sizeGrid);
 
+            // 4b. Selector de Fuente, Tamaño y Estilo de Texto
+            Border fontContainer = new Border {
+                Background = new SolidColorBrush(Color.FromArgb(120, 45, 48, 54)),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(6, 4, 6, 4),
+                Margin = new Thickness(0, 2, 0, 4),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
+                BorderThickness = new Thickness(1)
+            };
+
+            StackPanel fontStack = new StackPanel { Orientation = Orientation.Vertical };
+
+            // Fila 1: Selector de Familia de Fuente
+            Grid fontFamilyRow = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+            fontFamilyRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            fontFamilyRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            TextBlock fontLabel = new TextBlock {
+                Text = "🔤 Fuente:",
+                Foreground = Brushes.White,
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+            Grid.SetColumn(fontLabel, 0);
+            fontFamilyRow.Children.Add(fontLabel);
+
+            ComboBox fontCombo = new ComboBox {
+                Height = 22,
+                FontSize = 11,
+                Cursor = Cursors.Hand,
+                VerticalContentAlignment = VerticalAlignment.Center
+            };
+            bool updatingFontUI = false;
+            foreach (string fName in TextStyleService.AvailableFonts) {
+                ComboBoxItem fItem = new ComboBoxItem {
+                    Content = fName,
+                    FontFamily = new FontFamily(fName),
+                    FontSize = 11
+                };
+                fontCombo.Items.Add(fItem);
+                if (fName.Equals(TextStyleService.FontFamilyName, StringComparison.OrdinalIgnoreCase)) {
+                    fontCombo.SelectedItem = fItem;
+                }
+            }
+            fontCombo.SelectionChanged += (s, e) => {
+                if (updatingFontUI) return;
+                ComboBoxItem sel = fontCombo.SelectedItem as ComboBoxItem;
+                if (sel != null && sel.Content != null) {
+                    TextStyleService.FontFamilyName = sel.Content.ToString();
+                }
+            };
+            Grid.SetColumn(fontCombo, 1);
+            fontFamilyRow.Children.Add(fontCombo);
+            fontStack.Children.Add(fontFamilyRow);
+
+            // Fila 2: Tamaño de letra (A- / pt / A+) y Estilos (Negrita B / Cursiva I)
+            Grid fontSizeRow = new Grid();
+            fontSizeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            fontSizeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            fontSizeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            fontSizeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            fontSizeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            fontSizeRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            TextBlock txtSizeTitle = new TextBlock {
+                Text = "Tamaño:",
+                Foreground = Brushes.LightGray,
+                FontSize = 10.5,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+            Grid.SetColumn(txtSizeTitle, 0);
+            fontSizeRow.Children.Add(txtSizeTitle);
+
+            Button btnFontDec = new Button {
+                Content = "A-",
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(160, 50, 53, 59)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                Width = 28,
+                Height = 21,
+                FontSize = 10,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand,
+                ToolTip = "Reducir tamaño de texto (-2 pt)"
+            };
+            btnFontDec.Click += (s, e) => TextStyleService.DecreaseSize(2.0);
+            Grid.SetColumn(btnFontDec, 1);
+            fontSizeRow.Children.Add(btnFontDec);
+
+            TextBlock txtFontSizeVal = new TextBlock {
+                Text = string.Format("{0:0} pt", TextStyleService.FontSize),
+                Foreground = Brushes.SkyBlue,
+                FontSize = 11,
+                FontWeight = FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(txtFontSizeVal, 2);
+            fontSizeRow.Children.Add(txtFontSizeVal);
+
+            Button btnFontInc = new Button {
+                Content = "A+",
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(160, 50, 53, 59)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                Width = 28,
+                Height = 21,
+                FontSize = 10,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand,
+                ToolTip = "Aumentar tamaño de texto (+2 pt)"
+            };
+            btnFontInc.Click += (s, e) => TextStyleService.IncreaseSize(2.0);
+            Grid.SetColumn(btnFontInc, 3);
+            fontSizeRow.Children.Add(btnFontInc);
+
+            Button btnBold = new Button {
+                Content = "B",
+                Width = 24,
+                Height = 21,
+                FontSize = 10.5,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(6, 0, 2, 0),
+                Cursor = Cursors.Hand,
+                ToolTip = "Alternar texto en Negrita"
+            };
+            btnBold.Click += (s, e) => TextStyleService.ToggleBold();
+            Grid.SetColumn(btnBold, 4);
+            fontSizeRow.Children.Add(btnBold);
+
+            Button btnItalic = new Button {
+                Content = "I",
+                Width = 24,
+                Height = 21,
+                FontSize = 10.5,
+                FontStyle = FontStyles.Italic,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand,
+                ToolTip = "Alternar texto en Cursiva"
+            };
+            btnItalic.Click += (s, e) => TextStyleService.ToggleItalic();
+            Grid.SetColumn(btnItalic, 5);
+            fontSizeRow.Children.Add(btnItalic);
+
+            Action syncFontToolbarUI = () => {
+                updatingFontUI = true;
+                txtFontSizeVal.Text = string.Format("{0:0} pt", TextStyleService.FontSize);
+                for (int i = 0; i < fontCombo.Items.Count; i++) {
+                    ComboBoxItem item = fontCombo.Items[i] as ComboBoxItem;
+                    if (item != null && item.Content != null &&
+                        item.Content.ToString().Equals(TextStyleService.FontFamilyName, StringComparison.OrdinalIgnoreCase)) {
+                        fontCombo.SelectedIndex = i;
+                        break;
+                    }
+                }
+                btnBold.Background = TextStyleService.IsBold
+                    ? new SolidColorBrush(Color.FromArgb(220, 0, 122, 204))
+                    : new SolidColorBrush(Color.FromArgb(160, 50, 53, 59));
+                btnBold.BorderBrush = TextStyleService.IsBold
+                    ? Brushes.SkyBlue
+                    : new SolidColorBrush(Color.FromArgb(80, 255, 255, 255));
+                btnBold.Foreground = TextStyleService.IsBold ? Brushes.White : Brushes.LightGray;
+
+                btnItalic.Background = TextStyleService.IsItalic
+                    ? new SolidColorBrush(Color.FromArgb(220, 0, 122, 204))
+                    : new SolidColorBrush(Color.FromArgb(160, 50, 53, 59));
+                btnItalic.BorderBrush = TextStyleService.IsItalic
+                    ? Brushes.SkyBlue
+                    : new SolidColorBrush(Color.FromArgb(80, 255, 255, 255));
+                btnItalic.Foreground = TextStyleService.IsItalic ? Brushes.White : Brushes.LightGray;
+                updatingFontUI = false;
+            };
+
+            syncFontToolbarUI();
+            TextStyleService.StyleChanged += (s, e) => {
+                Dispatcher.Invoke(new Action(syncFontToolbarUI));
+            };
+
+            fontStack.Children.Add(fontSizeRow);
+            fontContainer.Child = fontStack;
+            mainStack.Children.Add(fontContainer);
+
             mainStack.Children.Add(CreateSeparator());
 
             // 5. Paleta de Colores

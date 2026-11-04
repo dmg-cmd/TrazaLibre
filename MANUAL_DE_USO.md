@@ -96,6 +96,7 @@ Al iniciar Trazalibre, se mostrará en pantalla una barra flotante oscura, compa
 - **Botón de Cierre (✕):** Ubicado en la esquina superior derecha del encabezado, cierra de inmediato la aplicación y libera todos los recursos del sistema.
 - **Persistencia Visual:** La barra permanece siempre visible por encima de cualquier ventana (`Topmost`), permitiéndote cambiar de herramienta en cualquier momento.
 - **Acceso Rápido Técnico:** Incorpora botones dedicados para **Ejes Coordenados (0, 0)** con controles de incremento `[ ➖ ]` / `[ ➕ ]`, botón de **Vector con Medidas**, conmutadores de Modo Vector (`V`) y Cota Técnica (`D`), además de los menús desplegables de Formas y Geometría.
+- **Sección Tipográfica (`🔤 Fuente`):** Permite elegir en cualquier momento la familia tipográfica (`Segoe UI`, `Arial`, `Calibri`, `Consolas`, `Verdana`, `Times New Roman`, `Georgia`, `Comic Sans MS`), regular el tamaño de letra entre **`10 pt` y `72 pt`** mediante los botones **`A-`** y **`A+`** (en pasos de 2 pt), y activar o desactivar los estilos **Negrita (`B`)** y **Cursiva (`I`)**. Estos ajustes se sincronizan en tiempo real con la mini-barra flotante de los cuadros de texto.
 
 ---
 
@@ -121,10 +122,15 @@ En la fila superior de la barra se sitúan las 5 herramientas de uso más recurr
 
 ### 🔤 Texto Libre (`T`)
 - Permite escribir notas y comentarios tipográficos en cualquier posición de la pantalla.
+- **Formato tipográfico en vivo (Barra Principal y Mini-Barra Flotante):**
+  - Al abrir un cuadro de texto, aparece justo encima una **mini-barra interactiva de formato** sincronizada con la sección **`🔤 Fuente`** de la barra principal.
+  - **Familia de fuente:** Selector desplegable con 8 tipografías previsualizadas (`Segoe UI`, `Arial`, `Calibri`, `Consolas`, `Verdana`, `Times New Roman`, `Georgia` y `Comic Sans MS`).
+  - **Tamaño de texto (`10 pt` a `72 pt`):** Botones **`A-`** y **`A+`** para disminuir o aumentar el puntaje de la letra al instante, con indicador numérico en puntos (`pt`).
+  - **Estilos:** Conmutadores dedicados para **Negrita (`B`)** y **Cursiva (`I`)**.
 - **Cómo usarlo:**
   1. Haz clic con el botón izquierdo en el lugar de la pantalla donde deseas escribir.
-  2. Escribe tu texto.
-  3. Presiona **`Enter`** para fijar el texto en el lienzo.
+  2. Ajusta si lo deseas la fuente, el tamaño o el estilo desde la mini-barra superior o la barra principal, y escribe tu texto.
+  3. Presiona **`Enter`** (o el botón **`✔ Fijar`** de la mini-barra) para estampar el texto en el lienzo.
   4. Si necesitas saltos de línea (párrafos múltiples), presiona **`Shift + Enter`**.
   5. Presiona **`ESC`** si deseas cancelar la edición del texto.
 
@@ -141,7 +147,7 @@ Desplegando el menú **`🔷 Formas:`** o usando sus atajos directos:
 
 ### 📌 Indicación con Flecha Apuntadora Interactiva (`I`)
 - **Flujo en 2 pasos:**
-  1. **Escribir la indicación:** Haz clic en cualquier lugar de la pantalla para colocar la nota explicativa. Se abrirá una caja de texto donde podrás redactar el comentario (`Shift + Enter` para nueva línea; `Enter` para confirmar).
+  1. **Escribir la indicación:** Haz clic en cualquier lugar de la pantalla para colocar la nota explicativa. Se abrirá una caja de texto acompañada de su **mini-barra flotante de formato tipográfico** (selector de familia de fuente, tamaño `10 pt` a `72 pt` con botones `A-` / `A+`, **Negrita `B`** y **Cursiva `I`**) donde podrás redactar y dar estilo al comentario (`Shift + Enter` para nueva línea; `Enter` o botón `✔ Apuntar ➔` para confirmar).
   2. **Apuntar al elemento de referencia:** Tras confirmar, se activa el modo de apuntado dinámico. Mueve el ratón hacia el elemento o sector al que deseas hacer referencia y verás la flecha trazarse en tiempo real.
 - **Tipos de flecha disponibles:**
   - **──▶ Recta (`1` o `R`):** Traza una línea directa desde la indicación al objetivo.
@@ -152,9 +158,9 @@ Desplegando el menú **`🔷 Formas:`** o usando sus atajos directos:
 - Al hacer clic izquierdo en el objetivo, se estampa la indicación y la flecha en un lote atómico con soporte completo para **`Ctrl + Z` (Deshacer)**.
 
 ### 💬 Globos de Diálogo y Explicaciones (Callouts)
-- **💬 Globo Rectangular con Flecha (`B`):** Arrastra para situar el globo sobre el elemento a explicar. Se abrirá automáticamente un editor de texto interno para redactar la explicación. Presiona `Enter` para fijarlo.
-- **🗨️ Globo Ovalado:** Viñeta redondeada clásica para diálogos o notas descriptivas.
-- **💭 Globo Nube:** Estilo visual de pensamiento para sugerencias, ideas o recordatorios.
+- **💬 Globo Rectangular con Flecha (`B`):** Arrastra para situar el globo sobre el elemento a explicar. Se abrirá automáticamente un editor de texto interno junto con la **mini-barra flotante tipográfica** (fuente, tamaño `A-`/`A+`, negrita `B` y cursiva `I`) para redactar la explicación. Presiona `Enter` (o `✔ Fijar`) para fijarlo.
+- **🗨️ Globo Ovalado:** Viñeta redondeada clásica para diálogos o notas descriptivas, con soporte completo de formato tipográfico en vivo.
+- **💭 Globo Nube:** Estilo visual de pensamiento para sugerencias, ideas o recordatorios, con soporte completo de formato tipográfico en vivo.
 
 ---
 
@@ -392,3 +398,6 @@ Se guardan como archivos PNG en la carpeta del programa con la nomenclatura `Cap
 
 #### 4. ¿Puedo personalizar los colores y grosores de las herramientas técnicas?
 Sí. El deslizador de grosor (1 a 30 px) y los botones de colores de la barra aplican de forma inmediata tanto al lápiz y figuras como a la regla, escuadras y vectores.
+
+#### 5. ¿Cómo cambio el tipo de letra, el tamaño o el estilo (negrita/cursiva) en los textos y globos?
+Puedes hacerlo tanto desde la sección **`🔤 Fuente`** de la barra de herramientas principal como desde la **mini-barra flotante** que aparece automáticamente encima del cuadro de edición al usar las herramientas **Texto (`T`)**, **Indicación con Flecha (`I`)** o **Globos de Diálogo (`B`)**. Allí dispones de 8 familias tipográficas (`Segoe UI`, `Arial`, `Calibri`, `Consolas`, `Verdana`, `Times New Roman`, `Georgia` y `Comic Sans MS`), botones **`A-`** y **`A+`** para regular el tamaño de `10 pt` a `72 pt`, y botones **`B`** (Negrita) e **`I`** (Cursiva).

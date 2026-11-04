@@ -7,6 +7,7 @@ using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
 using Trazalibre.Core;
+using Trazalibre.Services;
 
 namespace Trazalibre.Tools {
     /// <summary>
@@ -29,8 +30,10 @@ namespace Trazalibre.Tools {
         private Stroke _previewStroke = null;
 
         private TextBox _activeEditor = null;
+        private Border _formatPanel = null;
         private Stroke _currentGlobeStroke = null;
         private Rect _editorBodyRect;
+        private EventHandler _styleChangedHandler;
 
         /// <summary>
         /// Genera la colección de puntos del contorno cerrado del globo con su flecha conectada.
@@ -52,6 +55,7 @@ namespace Trazalibre.Tools {
                 _mouseDownHandler = OnCanvasMouseDown;
                 _mouseMoveHandler = OnCanvasMouseMove;
                 _mouseUpHandler = OnCanvasMouseUp;
+                _styleChangedHandler = OnTextStyleChanged;
             }
 
             context.Canvas.PreviewMouseDown -= _mouseDownHandler;
@@ -61,6 +65,9 @@ namespace Trazalibre.Tools {
             context.Canvas.PreviewMouseDown += _mouseDownHandler;
             context.Canvas.PreviewMouseMove += _mouseMoveHandler;
             context.Canvas.PreviewMouseUp += _mouseUpHandler;
+
+            TextStyleService.StyleChanged -= _styleChangedHandler;
+            TextStyleService.StyleChanged += _styleChangedHandler;
         }
 
         public void Deactivate(IAnnotationContext context) {
@@ -71,6 +78,9 @@ namespace Trazalibre.Tools {
                 context.Canvas.PreviewMouseDown -= _mouseDownHandler;
                 context.Canvas.PreviewMouseMove -= _mouseMoveHandler;
                 context.Canvas.PreviewMouseUp -= _mouseUpHandler;
+            }
+            if (_styleChangedHandler != null) {
+                TextStyleService.StyleChanged -= _styleChangedHandler;
             }
 
             _isDrawing = false;
@@ -85,21 +95,21 @@ namespace Trazalibre.Tools {
         }
 
         public void OnSizeChanged(IAnnotationContext context, double newSize) {
-            if (_activeEditor != null) {
-                _activeEditor.FontSize = CalculateFontSize(newSize);
-            }
+            // El tamaño de texto se controla mediante TextStyleService.FontSize
         }
 
-        private double CalculateFontSize(double size) {
-            return Math.Max(13.0, size * 3.8);
+        private void OnTextStyleChanged(object sender, EventArgs e) {
+            if (_activeEditor != null) {
+                TextStyleService.ApplyToEditor(_activeEditor);
+            }
         }
 
         private void OnCanvasMouseDown(object sender, MouseButtonEventArgs e) {
             if (e.LeftButton != MouseButtonState.Pressed || _context == null) return;
 
-            // Si hay un editor abierto y se hace clic fuera de él, confirmar el texto pendiente
+            // Si hay un editor abierto y se hace clic fuera de él y de su panel, confirmar el texto pendiente
             if (_activeEditor != null) {
-                if (_activeEditor.IsMouseOver) return;
+                if (_activeEditor.IsMouseOver || (_formatPanel != null && _formatPanel.IsMouseOver)) return;
                 CommitActiveText();
             }
 
@@ -147,16 +157,12 @@ namespace Trazalibre.Tools {
             if (_context == null || _context.Canvas == null) return;
 
             _editorBodyRect = bodyRect;
-            double fontSize = CalculateFontSize(_context.CurrentSize);
 
             double editorWidth = Math.Max(90.0, bodyRect.Width - 16.0);
             double editorHeight = Math.Max(35.0, bodyRect.Height - 12.0);
 
             _activeEditor = new TextBox {
                 Text = "",
-                FontSize = fontSize,
-                FontWeight = FontWeights.SemiBold,
-                FontFamily = new FontFamily("Segoe UI"),
                 Foreground = new SolidColorBrush(_context.CurrentColor),
                 CaretBrush = new SolidColorBrush(_context.CurrentColor),
                 Background = new SolidColorBrush(Color.FromArgb(210, 24, 26, 32)),
@@ -169,6 +175,7 @@ namespace Trazalibre.Tools {
                 Height = editorHeight,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto
             };
+            TextStyleService.ApplyToEditor(_activeEditor);
 
             _activeEditor.KeyDown += (s, e) => {
                 if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Shift) != ModifierKeys.Shift) {
@@ -180,14 +187,19 @@ namespace Trazalibre.Tools {
                 }
             };
 
-            _activeEditor.LostFocus += (s, e) => {
-                CommitActiveText();
-            };
+            _formatPanel = CreateFormatPanel();
 
-            InkCanvas.SetLeft(_activeEditor, bodyRect.Left + (bodyRect.Width - editorWidth) / 2.0);
-            InkCanvas.SetTop(_activeEditor, bodyRect.Top + (bodyRect.Height - editorHeight) / 2.0);
+            double editorLeft = bodyRect.Left + (bodyRect.Width - editorWidth) / 2.0;
+            double editorTop = bodyRect.Top + (bodyRect.Height - editorHeight) / 2.0;
+            InkCanvas.SetLeft(_activeEditor, editorLeft);
+            InkCanvas.SetTop(_activeEditor, editorTop);
+
+            double panelTop = Math.Max(6.0, bodyRect.Top - 36.0);
+            InkCanvas.SetLeft(_formatPanel, Math.Max(6.0, bodyRect.Left));
+            InkCanvas.SetTop(_formatPanel, panelTop);
 
             _context.Canvas.Children.Add(_activeEditor);
+            _context.Canvas.Children.Add(_formatPanel);
 
             _activeEditor.Loaded += (s, e) => {
                 _activeEditor.Focus();
@@ -198,19 +210,60 @@ namespace Trazalibre.Tools {
             Keyboard.Focus(_activeEditor);
         }
 
+        private Border CreateFormatPanel() {
+            Border border = new Border {
+                Background = new SolidColorBrush(Color.FromArgb(245, 25, 28, 34)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(180, 0, 162, 255)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(5),
+                Padding = new Thickness(5, 3, 5, 3)
+            };
+
+            StackPanel row = new StackPanel { Orientation = Orientation.Horizontal };
+            StackPanel formatBar = TextStyleService.CreateFloatingFormatBar(() => {
+                if (_activeEditor != null) {
+                    _activeEditor.Focus();
+                    Keyboard.Focus(_activeEditor);
+                }
+            });
+            row.Children.Add(formatBar);
+
+            Button btnCommit = new Button {
+                Content = "✓ Fijar [Enter]",
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(220, 0, 122, 204)),
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(6, 2, 6, 2),
+                Margin = new Thickness(6, 0, 2, 0),
+                FontSize = 10,
+                FontWeight = FontWeights.Bold,
+                Cursor = Cursors.Hand
+            };
+            btnCommit.Click += (s, e) => CommitActiveText();
+            row.Children.Add(btnCommit);
+
+            border.Child = row;
+            return border;
+        }
+
         private void CommitActiveText() {
             if (_activeEditor == null || _context == null) return;
 
             string content = _activeEditor.Text;
             TextBox editor = _activeEditor;
+            Border panel = _formatPanel;
             Stroke globe = _currentGlobeStroke;
             Rect bodyRect = _editorBodyRect;
 
             _activeEditor = null;
+            _formatPanel = null;
             _currentGlobeStroke = null;
 
             if (_context.Canvas.Children.Contains(editor)) {
                 _context.Canvas.Children.Remove(editor);
+            }
+            if (panel != null && _context.Canvas.Children.Contains(panel)) {
+                _context.Canvas.Children.Remove(panel);
             }
 
             if (globe != null && _context.Canvas.Strokes.Contains(globe)) {
@@ -223,8 +276,8 @@ namespace Trazalibre.Tools {
             combinedBatch.Add(globe);
 
             if (!string.IsNullOrEmpty(content) && !string.IsNullOrEmpty(content.Trim())) {
-                double fontSize = editor.FontSize;
-                Typeface typeface = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+                double fontSize = TextStyleService.FontSize;
+                Typeface typeface = TextStyleService.GetTypeface();
 
 #pragma warning disable 618
                 FormattedText ft = new FormattedText(
@@ -248,7 +301,7 @@ namespace Trazalibre.Tools {
                 Geometry textGeom = ft.BuildGeometry(new Point(textX, textY));
                 PathGeometry flatGeom = textGeom.GetFlattenedPathGeometry();
 
-                double strokeThickness = Math.Max(1.5, _context.CurrentSize * 0.4);
+                double strokeThickness = TextStyleService.GetOptimalTextStrokeThickness(fontSize, _context.CurrentSize);
                 DrawingAttributes textAttrs = new DrawingAttributes {
                     Color = _context.CurrentColor,
                     Width = strokeThickness,
@@ -281,12 +334,17 @@ namespace Trazalibre.Tools {
             if (_activeEditor == null || _context == null) return;
 
             TextBox editor = _activeEditor;
+            Border panel = _formatPanel;
             Stroke globe = _currentGlobeStroke;
             _activeEditor = null;
+            _formatPanel = null;
             _currentGlobeStroke = null;
 
             if (_context.Canvas.Children.Contains(editor)) {
                 _context.Canvas.Children.Remove(editor);
+            }
+            if (panel != null && _context.Canvas.Children.Contains(panel)) {
+                _context.Canvas.Children.Remove(panel);
             }
 
             // Si cancela la escritura, conservar el trazo del globo

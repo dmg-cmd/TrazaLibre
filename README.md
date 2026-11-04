@@ -55,6 +55,7 @@ G:\Trazalibre\
 │
 ├───src\
 │   │   Program.cs               <- Inyección de dependencias y composición
+│   │   AssemblyInfo.cs          <- Metadatos de ensamblado e información de versión Win32
 │   │   app.ico                  <- Icono oficial multirresolución Win32
 │   │
 │   ├───Core\                    <- Contratos e interfaces base (Sin dependencias externas)
@@ -70,6 +71,7 @@ G:\Trazalibre\
 │   │       BackgroundService.cs   <- Fondos de pizarra (blanca, negra, transparente)
 │   │       SnapService.cs         <- Captura magnética de extremos (Endpoint Snapping) e indicadores CAD
 │   │       MetricDimensionHelper.cs <- Controlador de precisión milimétrica (1 mm, entrada tipo CAD)
+│   │       TextStyleService.cs    <- Gestión sincronizada de fuente, tamaño (10-72 pt), negrita y cursiva
 │   │       HotkeyService.cs       <- Gestor de teclas rápidas globales
 │   │
 │   ├───Tools\                   <- Implementaciones aisladas de herramientas
@@ -77,7 +79,8 @@ G:\Trazalibre\
 │   │       PenTool.cs           <- Lápiz opaco estándar
 │   │       HighlighterTool.cs   <- Marcador translúcido
 │   │       EraserTool.cs        <- Borrador de trazos
-│   │       TextTool.cs          <- Herramienta de texto en pantalla
+│   │       TextTool.cs          <- Herramienta de texto en pantalla con mini-barra tipográfica
+│   │       InstructionTool.cs   <- Indicación con flecha apuntadora (recta y curvas Bézier) y formato de fuente
 │   │       ArrowShapeTool.cs    <- Flecha interactiva
 │   │       RectangleShapeTool.cs <- Rectángulo
 │   │       EllipseShapeTool.cs  <- Círculo y elipse
@@ -119,8 +122,8 @@ G:\Trazalibre\
 | **`P`** | Activar herramienta **Lápiz**. |
 | **`H`** | Activar herramienta **Resaltador**. |
 | **`E`** | Activar herramienta **Borrador**. |
-| **`T`** | Herramienta **🔤 Texto** (clic para escribir; Enter para fijar; Shift+Enter salto de línea). |
-| **`I`** | Herramienta **📌 Indicación con Flecha** (escribe la indicación, presiona Enter y apunta con flecha Recta, Curva Vertical o Curva Horizontal hacia la referencia). |
+| **`T`** | Herramienta **🔤 Texto** (clic para escribir; selector de fuente, tamaño `10-72 pt` con `A-`/`A+`, Negrita `B` y Cursiva `I`; Enter para fijar; Shift+Enter salto de línea). |
+| **`I`** | Herramienta **📌 Indicación con Flecha** (escribe la indicación con formato tipográfico en vivo, presiona Enter y apunta con flecha Recta, Curva Vertical o Curva Horizontal hacia la referencia). |
 | **`F`** | Forma **🏹 Flecha interactiva** (arrastra para apuntar). |
 | **`Q`** | Forma **⬜ Rectángulo** (arrastra para encuadrar). |
 | **`O`** | Forma **⭕ Círculo / Elipse** (arrastra para rodear). |
@@ -131,9 +134,9 @@ G:\Trazalibre\
 | *Menú* | Geometría **📐 Escuadra 45°** (escuadra isósceles 45°-45°-90° con rotación por rueda para trazar a 45° y 90°). |
 | *Menú* | Geometría **📐 Escuadra 30° / Cartabón** (escuadra 30°-60°-90° con rotación por rueda para trazado técnico). |
 | **`U`** | Geometría **🧭 Compás** (clava la aguja en el centro, abre el radio y regula el arco con la rueda del ratón; suelta para trazar la circunferencia). |
-| **`B`** | Globo **💬 Globo Rectangular con flecha** (arrastra para crear el globo y escribe el enunciado; Enter para fijar). |
-| *Menú* | Globo **🗨️ Globo Ovalado con flecha** (viñeta elíptica con flecha y texto editable). |
-| *Menú* | Globo **💭 Globo Nube con flecha** (nube de pensamiento con flecha y texto editable). |
+| **`B`** | Globo **💬 Globo Rectangular con flecha** (arrastra para crear el globo y escribe el enunciado con selector de fuente, tamaño y estilo; Enter para fijar). |
+| *Menú* | Globo **🗨️ Globo Ovalado con flecha** (viñeta elíptica con flecha y texto editable con formato tipográfico). |
+| *Menú* | Globo **💭 Globo Nube con flecha** (nube de pensamiento con flecha y texto editable con formato tipográfico). |
 | **`K`** | Sello **✔️ Check / Aprobado**. |
 | **`X`** | Sello **❌ Cruz / Error**. |
 | **`R`** | Sello **⭐ Estrella**. |
@@ -148,6 +151,16 @@ G:\Trazalibre\
 | **`Ctrl + S`** | **Capturar sector de pantalla:** Activa el selector interactivo para arrastrar con el ratón el sector a capturar, guardar en PNG y copiar al portapapeles (`ESC` para cancelar). |
 | **`V`** | Herramienta **🏹 Vector con Medidas:** Traza un vector entre dos puntos con visor en tiempo real de módulo en mm/cm, ángulo trigonométrico y componentes $\Delta X, \Delta Y$, estampando la cota técnica permanente. |
 | **`D`** | **Acotación Vectorial (Módulo y Ángulo):** Alterna el estampado automático de la cota técnica en el lienzo con el formato `[módulo mm ∠ ángulo°]` perpendicular al vector. |
+
+---
+
+## 🔤 Formato Tipográfico en Vivo (Fuente, Tamaño y Estilo)
+
+Trazalibre ofrece control tipográfico completo tanto desde la sección **`🔤 Fuente`** de la barra de herramientas principal como desde la **mini-barra flotante interactiva** que aparece automáticamente sobre el cuadro de texto en las herramientas **🔤 Texto (`T`)**, **📌 Indicación con Flecha (`I`)** y **💬 Globos de Diálogo (`B`)**:
+
+* **Selector de Familia de Fuente:** Permite alternar al instante entre 8 familias tipográficas (`Segoe UI`, `Arial`, `Calibri`, `Consolas`, `Verdana`, `Times New Roman`, `Georgia` y `Comic Sans MS`).
+* **Tamaño de Texto (`10 pt` a `72 pt`):** Ajustable en tiempo real mediante los botones **`A-`** y **`A+`** (con indicador visual de puntaje).
+* **Estilos Tipográficos:** Botones conmutadores para **Negrita (`B`)** y **Cursiva (`I`)**, sincronizados bidireccionalmente entre la barra principal y el editor activo en el lienzo.
 
 ---
 

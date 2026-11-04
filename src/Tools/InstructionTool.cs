@@ -7,6 +7,7 @@ using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
 using Trazalibre.Core;
+using Trazalibre.Services;
 
 namespace Trazalibre.Tools {
     /// <summary>
@@ -42,12 +43,14 @@ namespace Trazalibre.Tools {
         private MouseButtonEventHandler _canvasMouseDownHandler;
         private MouseEventHandler _canvasMouseMoveHandler;
         private KeyEventHandler _canvasKeyDownHandler;
+        private EventHandler _styleChangedHandler;
 
         // Elementos de edición
         private TextBox _activeEditor = null;
         private Border _optionsPanel = null;
         private Border _pointingHud = null;
         private TextBlock _hudStatusText = null;
+        private readonly List<Action> _hudButtonUpdaters = new List<Action>();
 
         // Datos de la indicación confirmada
         private Point _textOrigin;
@@ -70,6 +73,7 @@ namespace Trazalibre.Tools {
                 _canvasMouseDownHandler = OnCanvasMouseDown;
                 _canvasMouseMoveHandler = OnCanvasMouseMove;
                 _canvasKeyDownHandler = OnCanvasKeyDown;
+                _styleChangedHandler = OnTextStyleChanged;
             }
 
             AttachEvents();
@@ -88,17 +92,27 @@ namespace Trazalibre.Tools {
                 _activeEditor.Foreground = new SolidColorBrush(newColor);
                 _activeEditor.CaretBrush = new SolidColorBrush(newColor);
             }
+            if (_state == ToolState.Pointing && _context != null) {
+                UpdatePointingPreview(Mouse.GetPosition(_context.Canvas));
+            }
             UpdateHudStyle();
         }
 
         public void OnSizeChanged(IAnnotationContext context, double newSize) {
-            if (_activeEditor != null) {
-                _activeEditor.FontSize = CalculateFontSize(newSize);
+            if (_state == ToolState.Pointing && _context != null) {
+                UpdatePointingPreview(Mouse.GetPosition(_context.Canvas));
             }
         }
 
-        private double CalculateFontSize(double size) {
-            return Math.Max(14.0, size * 4.2);
+        private void OnTextStyleChanged(object sender, EventArgs e) {
+            if (_activeEditor != null) {
+                TextStyleService.ApplyToEditor(_activeEditor);
+            }
+            if (_state == ToolState.Pointing && _context != null && !string.IsNullOrEmpty(_confirmedText)) {
+                _confirmedFontSize = TextStyleService.FontSize;
+                RecalculateTextBounds();
+                UpdatePointingPreview(Mouse.GetPosition(_context.Canvas));
+            }
         }
 
         private void AttachEvents() {
@@ -108,6 +122,7 @@ namespace Trazalibre.Tools {
             _context.Canvas.PreviewMouseDown += _canvasMouseDownHandler;
             _context.Canvas.PreviewMouseMove += _canvasMouseMoveHandler;
             _context.Canvas.PreviewKeyDown += _canvasKeyDownHandler;
+            TextStyleService.StyleChanged += _styleChangedHandler;
         }
 
         private void DetachEvents() {
@@ -116,6 +131,7 @@ namespace Trazalibre.Tools {
             _context.Canvas.PreviewMouseDown -= _canvasMouseDownHandler;
             _context.Canvas.PreviewMouseMove -= _canvasMouseMoveHandler;
             _context.Canvas.PreviewKeyDown -= _canvasKeyDownHandler;
+            TextStyleService.StyleChanged -= _styleChangedHandler;
         }
 
         private void ResetState() {
@@ -207,14 +223,10 @@ namespace Trazalibre.Tools {
         private void StartTyping(Point pos) {
             _textOrigin = pos;
             _state = ToolState.Typing;
-            double fontSize = CalculateFontSize(_context.CurrentSize);
 
-            // 1. Editor de texto
+            // 1. Editor de texto sincronizado con el estilo tipográfico activo
             _activeEditor = new TextBox {
                 Text = "",
-                FontSize = fontSize,
-                FontWeight = FontWeights.SemiBold,
-                FontFamily = new FontFamily("Segoe UI"),
                 Foreground = new SolidColorBrush(_context.CurrentColor),
                 CaretBrush = new SolidColorBrush(_context.CurrentColor),
                 Background = new SolidColorBrush(Color.FromArgb(235, 20, 24, 30)),
@@ -225,6 +237,7 @@ namespace Trazalibre.Tools {
                 MinWidth = 160,
                 MaxWidth = 700
             };
+            TextStyleService.ApplyToEditor(_activeEditor);
 
             _activeEditor.KeyDown += (s, e) => {
                 if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Shift) != ModifierKeys.Shift) {
@@ -240,14 +253,15 @@ namespace Trazalibre.Tools {
                 }
             };
 
-            // 2. Mini-barra flotante de opciones
+            // 2. Mini-barra flotante de opciones (Fuente, Tamaño, Estilo + Tipo de Flecha)
             _optionsPanel = CreateOptionsPanel();
 
             InkCanvas.SetLeft(_activeEditor, pos.X);
             InkCanvas.SetTop(_activeEditor, pos.Y);
 
+            double panelTop = Math.Max(6.0, pos.Y - 38.0);
             InkCanvas.SetLeft(_optionsPanel, pos.X);
-            InkCanvas.SetTop(_optionsPanel, pos.Y - 38);
+            InkCanvas.SetTop(_optionsPanel, panelTop);
 
             _context.Canvas.Children.Add(_activeEditor);
             _context.Canvas.Children.Add(_optionsPanel);
@@ -267,17 +281,34 @@ namespace Trazalibre.Tools {
                 BorderBrush = new SolidColorBrush(Color.FromArgb(180, 0, 162, 255)),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(5),
-                Padding = new Thickness(4, 2, 4, 2)
+                Padding = new Thickness(5, 3, 5, 3)
             };
 
             StackPanel stack = new StackPanel { Orientation = Orientation.Horizontal };
+
+            // Controles de Fuente, Tamaño (A- / A+) y Estilo (B / I)
+            StackPanel formatBar = TextStyleService.CreateFloatingFormatBar(() => {
+                if (_activeEditor != null) {
+                    _activeEditor.Focus();
+                    Keyboard.Focus(_activeEditor);
+                }
+            });
+            stack.Children.Add(formatBar);
+
+            // Separador vertical
+            Border sep = new Border {
+                Width = 1,
+                Background = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                Margin = new Thickness(6, 2, 6, 2)
+            };
+            stack.Children.Add(sep);
 
             TextBlock title = new TextBlock {
                 Text = "Flecha:",
                 Foreground = Brushes.Silver,
                 FontSize = 10.5,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(2, 0, 6, 0)
+                Margin = new Thickness(0, 0, 4, 0)
             };
             stack.Children.Add(title);
 
@@ -376,25 +407,8 @@ namespace Trazalibre.Tools {
             }
 
             _confirmedText = _activeEditor.Text.Trim();
-            _confirmedFontSize = _activeEditor.FontSize;
-
-            // Medir dimensiones del texto
-            Typeface typeface = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
-#pragma warning disable 618
-            FormattedText ft = new FormattedText(
-                _confirmedText,
-                CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight,
-                typeface,
-                _confirmedFontSize,
-                Brushes.Black
-            );
-#pragma warning restore 618
-
-            double boxPadding = 8.0;
-            double boxWidth = ft.Width + (boxPadding * 2.0);
-            double boxHeight = ft.Height + (boxPadding * 2.0);
-            _textBounds = new Rect(_textOrigin.X, _textOrigin.Y, boxWidth, boxHeight);
+            _confirmedFontSize = TextStyleService.FontSize;
+            RecalculateTextBounds();
 
             // Retirar el editor de la pantalla
             RemoveEditorAndPanels();
@@ -412,7 +426,27 @@ namespace Trazalibre.Tools {
             _context.Canvas.Focus();
         }
 
+        private void RecalculateTextBounds() {
+            Typeface typeface = TextStyleService.GetTypeface();
+#pragma warning disable 618
+            FormattedText ft = new FormattedText(
+                _confirmedText,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                _confirmedFontSize,
+                Brushes.Black
+            );
+#pragma warning restore 618
+
+            double boxPadding = 8.0;
+            double boxWidth = ft.Width + (boxPadding * 2.0);
+            double boxHeight = ft.Height + (boxPadding * 2.0);
+            _textBounds = new Rect(_textOrigin.X, _textOrigin.Y, boxWidth, boxHeight);
+        }
+
         private void CreatePointingHud() {
+            _hudButtonUpdaters.Clear();
             _pointingHud = new Border {
                 Background = new SolidColorBrush(Color.FromArgb(240, 20, 22, 28)),
                 BorderBrush = new SolidColorBrush(Color.FromArgb(200, 255, 215, 0)),
@@ -429,7 +463,6 @@ namespace Trazalibre.Tools {
                 FontWeight = FontWeights.SemiBold,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            UpdateHudText();
             stack.Children.Add(_hudStatusText);
 
             // Botones interactivos en el propio HUD para cambiar de tipo al hacer clic
@@ -440,6 +473,7 @@ namespace Trazalibre.Tools {
             stack.Children.Add(b1);
             stack.Children.Add(b2);
             stack.Children.Add(b3);
+            UpdateHudText();
 
             Button btnNoArrow = new Button {
                 Content = "✕ Sin Flecha [Esc]",
@@ -489,6 +523,7 @@ namespace Trazalibre.Tools {
                     btn.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255));
                 }
             };
+            _hudButtonUpdaters.Add(update);
             update();
 
             btn.Click += (s, e) => {
@@ -502,12 +537,16 @@ namespace Trazalibre.Tools {
         }
 
         private void UpdateHudText() {
-            if (_hudStatusText == null) return;
-            string typeName = "Recta";
-            if (_selectedArrowType == ArrowPointerType.CurvedVertical) typeName = "Curva Vertical";
-            else if (_selectedArrowType == ArrowPointerType.CurvedHorizontal) typeName = "Curva Horizontal";
+            if (_hudStatusText != null) {
+                string typeName = "Recta";
+                if (_selectedArrowType == ArrowPointerType.CurvedVertical) typeName = "Curva Vertical";
+                else if (_selectedArrowType == ArrowPointerType.CurvedHorizontal) typeName = "Curva Horizontal";
 
-            _hudStatusText.Text = string.Format("🎯 Apunta y haz clic | Flecha: {0} ", typeName);
+                _hudStatusText.Text = string.Format("🎯 Apunta y haz clic | Flecha: {0} ", typeName);
+            }
+            foreach (Action upd in _hudButtonUpdaters) {
+                upd();
+            }
         }
 
         private void UpdateHudStyle() {
@@ -560,13 +599,8 @@ namespace Trazalibre.Tools {
         private void CommitOrCancel(bool commit) {
             if (_state == ToolState.Typing && _activeEditor != null && !string.IsNullOrEmpty(_activeEditor.Text.Trim())) {
                 _confirmedText = _activeEditor.Text.Trim();
-                _confirmedFontSize = _activeEditor.FontSize;
-                Typeface typeface = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
-#pragma warning disable 618
-                FormattedText ft = new FormattedText(_confirmedText, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, _confirmedFontSize, Brushes.Black);
-#pragma warning restore 618
-                double pad = 8.0;
-                _textBounds = new Rect(_textOrigin.X, _textOrigin.Y, ft.Width + pad * 2, ft.Height + pad * 2);
+                _confirmedFontSize = TextStyleService.FontSize;
+                RecalculateTextBounds();
                 FinishAnnotation(new Point(0, 0), false);
             } else if (_state == ToolState.Pointing && !string.IsNullOrEmpty(_confirmedText)) {
                 FinishAnnotation(new Point(0, 0), false);
@@ -635,7 +669,7 @@ namespace Trazalibre.Tools {
 
         private StrokeCollection CreateTextStrokes(string text, Rect bounds, double fontSize, Color color, double thickness) {
             StrokeCollection strokes = new StrokeCollection();
-            Typeface typeface = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+            Typeface typeface = TextStyleService.GetTypeface();
 
 #pragma warning disable 618
             FormattedText ft = new FormattedText(
@@ -655,7 +689,7 @@ namespace Trazalibre.Tools {
             Geometry textGeom = ft.BuildGeometry(new Point(textX, textY));
             PathGeometry flatGeom = textGeom.GetFlattenedPathGeometry();
 
-            double strokeThickness = Math.Max(1.4, thickness * 0.45);
+            double strokeThickness = TextStyleService.GetOptimalTextStrokeThickness(fontSize, thickness);
             DrawingAttributes textAttrs = new DrawingAttributes {
                 Color = color,
                 Width = strokeThickness,
