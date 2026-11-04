@@ -20,7 +20,8 @@ Imagina tener un **marcador mágico** con el que puedes dibujar, escribir o señ
 
 1. **Abrir la aplicación:**
    * Ejecuta `bin\Trazalibre.exe` (o compila al instante con doble clic en `build.bat`).
-   * Aparecerá una barra de herramientas elegante y compacta en la esquina superior derecha de tu monitor. Puedes arrastrarla a cualquier lugar de la pantalla que prefieras.
+   * Se mostrará la **Pantalla de Inicio** con el icono oficial, versión, barra de progreso animada y el aviso *"Iniciando Trazalibre, por favor espere..."*.
+   * A continuación aparecerá la barra de herramientas flotante en la esquina superior derecha con el indicador **`● Activo`** y el selector de tema (**🌙 Oscuro**, **☀️ Claro** o **🔷 Azul CAD**). Puedes arrastrarla a cualquier lugar de la pantalla que prefieras.
 
 2. **Comenzar a dibujar:**
    * Haz clic en el icono del **Lápiz** (o pulsa la tecla **`P`**) para realizar trazos libres.
@@ -62,13 +63,14 @@ G:\Trazalibre\
 │   │       IAnnotationContext.cs <- Abstracción del lienzo para herramientas
 │   │       ITool.cs              <- Contrato independiente para cualquier herramienta
 │   │       ToolRegistry.cs       <- Gestor dinámico del ciclo de vida de herramientas
-│   │       BackgroundMode.cs     <- Enumeración de modos de pizarra
+│   │       BackgroundMode.cs     <- Enumeración de los 7 modos de fondo y lienzos técnicos
 │   │       ISequenceTool.cs      <- Contrato para herramientas con conteo
 │   │
 │   ├───Services\                <- Lógica de infraestructura y servicios aislados
 │   │       NativeWindowService.cs <- Win32 API (Click-through, WS_EX_TRANSPARENT)
 │   │       ScreenshotService.cs   <- Captura de pantalla, PNG y portapapeles
-│   │       BackgroundService.cs   <- Fondos de pizarra (blanca, negra, transparente)
+│   │       BackgroundService.cs   <- 7 fondos de lienzo (transparente, pizarras, cuadrículas CAD, blueprint y puntos)
+│   │       ThemeService.cs        <- Temas visuales en vivo para la interfaz (Oscuro, Claro y Azul CAD)
 │   │       SnapService.cs         <- Captura magnética de extremos (Endpoint Snapping) e indicadores CAD
 │   │       MetricDimensionHelper.cs <- Controlador de precisión milimétrica (1 mm, entrada tipo CAD)
 │   │       TextStyleService.cs    <- Gestión sincronizada de fuente, tamaño (10-72 pt), negrita y cursiva
@@ -103,8 +105,9 @@ G:\Trazalibre\
 │   │       NumberStampTool.cs   <- Sello de número secuencial interactivo
 │   │
 │   └───UI\                      <- Vistas desacopladas
+│           SplashWindow.cs      <- Pantalla de inicio animada con icono oficial, versión y barra de progreso
 │           OverlayWindow.cs     <- Lienzo de pantalla completa (implementa IAnnotationContext)
-│           ToolbarWindow.cs     <- Barra flotante dinámica con icono oficial
+│           ToolbarWindow.cs     <- Barra flotante dinámica con selector de tema e indicador de estado
 │           SectorSelectionWindow.cs <- Selector interactivo de sector de pantalla con arrastre y guía
 │
 └───bin\
@@ -151,6 +154,24 @@ G:\Trazalibre\
 | **`Ctrl + S`** | **Capturar sector de pantalla:** Activa el selector interactivo para arrastrar con el ratón el sector a capturar, guardar en PNG y copiar al portapapeles (`ESC` para cancelar). |
 | **`V`** | Herramienta **🏹 Vector con Medidas:** Traza un vector entre dos puntos con visor en tiempo real de módulo en mm/cm, ángulo trigonométrico y componentes $\Delta X, \Delta Y$, estampando la cota técnica permanente. |
 | **`D`** | **Acotación Vectorial (Módulo y Ángulo):** Alterna el estampado automático de la cota técnica en el lienzo con el formato `[módulo mm ∠ ángulo°]` perpendicular al vector. |
+
+---
+
+## 🎨 Temas de Interfaz, Pantalla de Inicio y 7 Modos de Lienzo
+
+* **🚀 Pantalla de Inicio e Indicador de Ejecución (`SplashWindow.cs`):**
+  * Al ejecutar `Trazalibre.exe`, se presenta una ventana de bienvenida con el icono oficial, la versión actual, una barra de progreso animada y el aviso `"Iniciando Trazalibre, por favor espere..."`.
+  * En el encabezado de la barra de herramientas principal permanece visible el indicador verde **`● Activo`** que confirma que la aplicación está en ejecución.
+* **🎨 Selector de Aspecto / Tema de la Interfaz (`ThemeService.cs`):**
+  * Desde el botón ubicado en el encabezado de la barra de herramientas puedes alternar en tiempo real entre tres temas visuales: **🌙 Oscuro**, **☀️ Claro** y **🔷 Azul CAD**.
+* **🖼️ 7 Modos de Fondo de Pantalla y Lienzos Técnicos (`BackgroundMode.cs` / `BackgroundService.cs`):**
+  * **`🖥️ Escritorio (Transparente)`**: Dibuja directamente sobre cualquier ventana o aplicación de Windows.
+  * **`⬜ Pizarra Clara (Blanca)`**: Lienzo luminoso para clases y presentaciones.
+  * **`⬛ Pizarra Oscura (Grafito)`**: Lienzo oscuro de bajo deslumbramiento para trazos brillantes.
+  * **`📐 Cuadrícula Clara (Milimetrada)`**: Hoja cuadriculada clara calibrada a escala real (subdivisión de 5 mm y línea principal de 10 mm / 1 cm).
+  * **`🌐 Cuadrícula Oscura (CAD)`**: Retícula técnica milimetrada sobre fondo oscuro tipo estación CAD.
+  * **`🟦 Plano Azul Ingeniería (Blueprint)`**: Fondo clásico de plano de ingeniería con cuadrícula cian milimetrada.
+  * **`📄 Hoja Punteada (Dot Grid)`**: Matriz de puntos guía equidistantes cada 5 mm para esquemas y apuntes limpios.
 
 ---
 

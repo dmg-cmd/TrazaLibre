@@ -12,6 +12,11 @@ namespace Trazalibre {
             Application app = new Application();
             app.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+            // 0. Mostrar pantalla de inicio e indicador de ejecución inmediata ("Por favor espere")
+            SplashWindow splash = new SplashWindow();
+            splash.Show();
+            splash.SetProgress(0.20, "⏳ Iniciando motor vectorial CAD, por favor espere...");
+
             // 1. Instanciar el registro de herramientas
             ToolRegistry registry = new ToolRegistry();
             registry.RegisterTool(new MouseTool());
@@ -48,6 +53,8 @@ namespace Trazalibre {
             registry.RegisterTool(new ArrowStampTool());
             registry.RegisterTool(new NumberStampTool());
 
+            splash.SetProgress(0.55, "⏳ Preparando lienzo multimonitor y cuadrículas...");
+
             // 2. Crear la ventana de lienzo de anotación
             OverlayWindow overlay = new OverlayWindow();
             overlay.Show();
@@ -55,6 +62,8 @@ namespace Trazalibre {
             // 3. Conectar el registro al lienzo
             registry.Initialize(overlay);
             registry.SelectTool("pen");
+
+            splash.SetProgress(0.85, "⏳ Cargando barra de herramientas y atajos...");
 
             // 4. Crear la barra de herramientas flotante con jerarquía Owner
             ToolbarWindow toolbar = new ToolbarWindow(registry, overlay, overlay);
@@ -64,6 +73,9 @@ namespace Trazalibre {
             HotkeyService hotkeyService = new HotkeyService(registry, overlay);
             hotkeyService.AttachWindow(overlay);
             hotkeyService.AttachWindow(toolbar);
+
+            splash.SetProgress(1.0, "✅ ¡Trazalibre en ejecución!");
+            splash.CloseAfterDelay(500);
 
             // 6. Cierre seguro
             toolbar.Closed += (s, e) => {

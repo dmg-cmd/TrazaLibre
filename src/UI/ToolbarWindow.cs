@@ -17,10 +17,17 @@ namespace Trazalibre.UI {
             public override string ToString() { return DisplayText; }
         }
 
+        private class BackgroundComboItem {
+            public BackgroundMode Mode { get; set; }
+            public string DisplayText { get; set; }
+            public override string ToString() { return DisplayText; }
+        }
+
         private readonly ToolRegistry _toolRegistry;
         private readonly IAnnotationContext _context;
         private readonly ISequenceTool _sequenceTool;
         private readonly Dictionary<string, Button> _mainToolButtons = new Dictionary<string, Button>();
+        private readonly Dictionary<BackgroundMode, Button> _bgQuickButtons = new Dictionary<BackgroundMode, Button>();
 
         private ComboBox _shapeComboBox;
         private Border _shapeContainerBorder;
@@ -30,10 +37,12 @@ namespace Trazalibre.UI {
         private Button _vectorButton;
         private ComboBox _stampComboBox;
         private Border _stampContainerBorder;
+        private ComboBox _bgComboBox;
         private TextBox _numberTextBox;
         private Slider _sizeSlider;
         private TextBlock _sizeValueText;
         private bool _isUpdatingComboSelection = false;
+        private bool _isUpdatingBgSelection = false;
 
         public ToolbarWindow(ToolRegistry toolRegistry, IAnnotationContext context, Window ownerWindow) {
             _toolRegistry = toolRegistry;
@@ -88,16 +97,29 @@ namespace Trazalibre.UI {
             };
 
             BuildUI();
+
+            ThemeService.ThemeChanged += (s, e) => {
+                Dispatcher.Invoke(new Action(() => {
+                    BuildUI();
+                }));
+            };
+
+            BackgroundService.BackgroundModeChanged += (s, e) => {
+                Dispatcher.Invoke(new Action(SyncBackgroundControls));
+            };
         }
 
         private void BuildUI() {
+            _mainToolButtons.Clear();
+            _bgQuickButtons.Clear();
+
             Border rootBorder = new Border {
-                Background = new SolidColorBrush(Color.FromArgb(245, 32, 34, 37)),
-                CornerRadius = new CornerRadius(10),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(100, 255, 255, 255)),
-                BorderThickness = new Thickness(1),
+                Background = ThemeService.GetWindowBackground(),
+                CornerRadius = new CornerRadius(11),
+                BorderBrush = ThemeService.GetWindowBorderBrush(),
+                BorderThickness = new Thickness(1.4),
                 Padding = new Thickness(10),
-                MaxWidth = 270
+                MaxWidth = 278
             };
 
             rootBorder.MouseDown += (s, e) => {
@@ -108,29 +130,96 @@ namespace Trazalibre.UI {
 
             StackPanel mainStack = new StackPanel { Orientation = Orientation.Vertical };
 
-            // Encabezado
+            // Encabezado con Icono Oficial, Indicador de Ejecución y Conmutador de Aspecto
             Grid headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
-            TextBlock titleText = new TextBlock {
-                Text = "🖊️ Trazalibre",
-                Foreground = Brushes.White,
-                FontWeight = FontWeights.Bold,
-                FontSize = 13,
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            StackPanel brandStack = new StackPanel {
+                Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center
             };
+
+            ImageSource appIcon = SplashWindow.TryLoadAppIcon();
+            if (appIcon != null) {
+                Image iconImg = new Image {
+                    Source = appIcon,
+                    Width = 20,
+                    Height = 20,
+                    Margin = new Thickness(0, 0, 6, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                RenderOptions.SetBitmapScalingMode(iconImg, BitmapScalingMode.HighQuality);
+                brandStack.Children.Add(iconImg);
+            }
+
+            TextBlock titleText = new TextBlock {
+                Text = "Trazalibre",
+                Foreground = ThemeService.GetPrimaryTextBrush(),
+                FontWeight = FontWeights.Bold,
+                FontSize = 13.5,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            brandStack.Children.Add(titleText);
+
+            Border statusBadge = new Border {
+                Background = new SolidColorBrush(Color.FromArgb(65, 0, 210, 110)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(170, 0, 220, 120)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(4, 1, 4, 1),
+                Margin = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = "Trazalibre está activo y en ejecución"
+            };
+            statusBadge.Child = new TextBlock {
+                Text = "● Activo",
+                Foreground = ThemeService.CurrentTheme == AppTheme.Light
+                    ? new SolidColorBrush(Color.FromRgb(0, 135, 65))
+                    : Brushes.LightGreen,
+                FontSize = 9,
+                FontWeight = FontWeights.Bold
+            };
+            brandStack.Children.Add(statusBadge);
+
+            Grid.SetColumn(brandStack, 0);
+            headerGrid.Children.Add(brandStack);
+
+            // Botón para cambiar el aspecto visual (Oscuro / Claro / Azul CAD)
+            Button themeBtn = new Button {
+                Content = ThemeService.GetThemeDisplayName(),
+                Foreground = ThemeService.GetPrimaryTextBrush(),
+                Background = ThemeService.GetButtonIdleBackground(),
+                BorderBrush = ThemeService.GetButtonIdleBorder(),
+                BorderThickness = new Thickness(1),
+                FontSize = 9.5,
+                FontWeight = FontWeights.SemiBold,
+                Padding = new Thickness(5, 2, 5, 2),
+                Margin = new Thickness(4, 0, 4, 0),
+                Cursor = Cursors.Hand,
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = "Cambiar aspecto visual de la barra (Oscuro / Claro / Azul CAD)"
+            };
+            themeBtn.Click += (s, e) => ThemeService.CycleTheme();
+            Grid.SetColumn(themeBtn, 1);
+            headerGrid.Children.Add(themeBtn);
+
             Button closeBtn = new Button {
                 Content = "✕",
-                Foreground = Brushes.White,
+                Foreground = ThemeService.GetPrimaryTextBrush(),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
                 FontSize = 12,
                 Cursor = Cursors.Hand,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Width = 24,
-                Height = 24
+                Height = 24,
+                ToolTip = "Cerrar Trazalibre"
             };
             closeBtn.Click += (s, e) => Application.Current.Shutdown();
+            Grid.SetColumn(closeBtn, 2);
 
-            headerGrid.Children.Add(titleText);
             headerGrid.Children.Add(closeBtn);
             mainStack.Children.Add(headerGrid);
 
@@ -469,7 +558,7 @@ namespace Trazalibre.UI {
 
             TextBlock sizeLabel = new TextBlock {
                 Text = "📏 Grosor:",
-                Foreground = Brushes.White,
+                Foreground = ThemeService.GetPrimaryTextBrush(),
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 6, 0)
@@ -498,7 +587,7 @@ namespace Trazalibre.UI {
 
             _sizeValueText = new TextBlock {
                 Text = string.Format("{0:0} px", _context.CurrentSize),
-                Foreground = Brushes.SkyBlue,
+                Foreground = ThemeService.GetAccentTextBrush(),
                 FontSize = 11,
                 FontWeight = FontWeights.Bold,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -513,11 +602,11 @@ namespace Trazalibre.UI {
 
             // 4b. Selector de Fuente, Tamaño y Estilo de Texto
             Border fontContainer = new Border {
-                Background = new SolidColorBrush(Color.FromArgb(120, 45, 48, 54)),
+                Background = ThemeService.GetSectionBackground(),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(6, 4, 6, 4),
                 Margin = new Thickness(0, 2, 0, 4),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
+                BorderBrush = ThemeService.GetSectionBorderBrush(),
                 BorderThickness = new Thickness(1)
             };
 
@@ -530,7 +619,7 @@ namespace Trazalibre.UI {
 
             TextBlock fontLabel = new TextBlock {
                 Text = "🔤 Fuente:",
-                Foreground = Brushes.White,
+                Foreground = ThemeService.GetPrimaryTextBrush(),
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 6, 0)
@@ -711,12 +800,38 @@ namespace Trazalibre.UI {
 
             mainStack.Children.Add(CreateSeparator());
 
-            // 6. Fondos de Pantalla
-            WrapPanel bgPanel = new WrapPanel { Margin = new Thickness(0, 4, 0, 6) };
-            bgPanel.Children.Add(CreateButton("🖥️ Pantalla", () => _context.SetBackgroundMode(BackgroundMode.Transparent)));
-            bgPanel.Children.Add(CreateButton("⬜ Blanca", () => _context.SetBackgroundMode(BackgroundMode.Whiteboard)));
-            bgPanel.Children.Add(CreateButton("⬛ Pizarra", () => _context.SetBackgroundMode(BackgroundMode.Blackboard)));
+            // 6. Fondos de Pantalla y Lienzos Técnicos
+            Border bgContainer = CreateDropdownRow("🖼️ Fondo:", out _bgComboBox);
+            BackgroundComboItem[] bgItems = new BackgroundComboItem[] {
+                new BackgroundComboItem { Mode = BackgroundMode.Transparent, DisplayText = "🖥️ Escritorio (Transparente)" },
+                new BackgroundComboItem { Mode = BackgroundMode.Whiteboard,  DisplayText = "⬜ Pizarra Clara (Blanca)" },
+                new BackgroundComboItem { Mode = BackgroundMode.Blackboard,  DisplayText = "⬛ Pizarra Oscura (Grafito)" },
+                new BackgroundComboItem { Mode = BackgroundMode.LightGrid,   DisplayText = "📐 Cuadrícula Clara (Milimetrada)" },
+                new BackgroundComboItem { Mode = BackgroundMode.DarkGrid,    DisplayText = "🌐 Cuadrícula Oscura (CAD)" },
+                new BackgroundComboItem { Mode = BackgroundMode.Blueprint,   DisplayText = "🟦 Plano Azul Ingeniería (Blueprint)" },
+                new BackgroundComboItem { Mode = BackgroundMode.DotGrid,     DisplayText = "📄 Hoja Punteada (Dot Grid)" }
+            };
+            foreach (BackgroundComboItem bItem in bgItems) {
+                _bgComboBox.Items.Add(bItem);
+            }
+            _bgComboBox.SelectionChanged += (s, e) => {
+                if (_isUpdatingBgSelection) return;
+                BackgroundComboItem sel = _bgComboBox.SelectedItem as BackgroundComboItem;
+                if (sel != null) {
+                    _context.SetBackgroundMode(sel.Mode);
+                    SyncBackgroundControls();
+                }
+            };
+            mainStack.Children.Add(bgContainer);
+
+            WrapPanel bgPanel = new WrapPanel { Margin = new Thickness(0, 2, 0, 6) };
+            AddQuickBgButton(bgPanel, "🖥️ Escritorio", BackgroundMode.Transparent);
+            AddQuickBgButton(bgPanel, "⬜ Claro", BackgroundMode.Whiteboard);
+            AddQuickBgButton(bgPanel, "⬛ Oscuro", BackgroundMode.Blackboard);
+            AddQuickBgButton(bgPanel, "📐 Cuadrícula", BackgroundMode.LightGrid);
+            AddQuickBgButton(bgPanel, "🟦 Plano CAD", BackgroundMode.Blueprint);
             mainStack.Children.Add(bgPanel);
+            SyncBackgroundControls();
 
             mainStack.Children.Add(CreateSeparator());
 
@@ -751,11 +866,11 @@ namespace Trazalibre.UI {
 
         private Border CreateDropdownRow(string labelText, out ComboBox comboBox) {
             Border border = new Border {
-                Background = new SolidColorBrush(Color.FromArgb(120, 45, 48, 54)),
+                Background = ThemeService.GetSectionBackground(),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(6, 3, 6, 3),
                 Margin = new Thickness(0, 0, 0, 4),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
+                BorderBrush = ThemeService.GetSectionBorderBrush(),
                 BorderThickness = new Thickness(1)
             };
 
@@ -765,7 +880,7 @@ namespace Trazalibre.UI {
 
             TextBlock label = new TextBlock {
                 Text = labelText,
-                Foreground = Brushes.White,
+                Foreground = ThemeService.GetPrimaryTextBrush(),
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 6, 0)
@@ -784,6 +899,45 @@ namespace Trazalibre.UI {
 
             border.Child = grid;
             return border;
+        }
+
+        private void AddQuickBgButton(WrapPanel panel, string label, BackgroundMode mode) {
+            Button btn = CreateButton(label, () => {
+                _context.SetBackgroundMode(mode);
+                SyncBackgroundControls();
+            });
+            _bgQuickButtons[mode] = btn;
+            panel.Children.Add(btn);
+        }
+
+        private void SyncBackgroundControls() {
+            BackgroundMode current = BackgroundService.CurrentMode;
+
+            if (_bgComboBox != null) {
+                _isUpdatingBgSelection = true;
+                for (int i = 0; i < _bgComboBox.Items.Count; i++) {
+                    BackgroundComboItem item = _bgComboBox.Items[i] as BackgroundComboItem;
+                    if (item != null && item.Mode == current) {
+                        _bgComboBox.SelectedIndex = i;
+                        break;
+                    }
+                }
+                _isUpdatingBgSelection = false;
+            }
+
+            foreach (KeyValuePair<BackgroundMode, Button> kv in _bgQuickButtons) {
+                if (kv.Key == current) {
+                    kv.Value.Background = ThemeService.GetButtonActiveBackground();
+                    kv.Value.BorderBrush = Brushes.SkyBlue;
+                    kv.Value.Foreground = Brushes.White;
+                    kv.Value.FontWeight = FontWeights.SemiBold;
+                } else {
+                    kv.Value.Background = ThemeService.GetButtonIdleBackground();
+                    kv.Value.BorderBrush = ThemeService.GetButtonIdleBorder();
+                    kv.Value.Foreground = ThemeService.GetPrimaryTextBrush();
+                    kv.Value.FontWeight = FontWeights.Normal;
+                }
+            }
         }
 
         private ITool FindTool(string id) {
@@ -834,11 +988,13 @@ namespace Trazalibre.UI {
             // Actualizar botones principales
             foreach (KeyValuePair<string, Button> kv in _mainToolButtons) {
                 if (kv.Key.Equals(activeId, StringComparison.OrdinalIgnoreCase)) {
-                    kv.Value.Background = new SolidColorBrush(Color.FromArgb(200, 0, 122, 204));
+                    kv.Value.Background = ThemeService.GetButtonActiveBackground();
                     kv.Value.BorderBrush = Brushes.SkyBlue;
+                    kv.Value.Foreground = Brushes.White;
                 } else {
-                    kv.Value.Background = new SolidColorBrush(Color.FromArgb(160, 50, 53, 59));
-                    kv.Value.BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255));
+                    kv.Value.Background = ThemeService.GetButtonIdleBackground();
+                    kv.Value.BorderBrush = ThemeService.GetButtonIdleBorder();
+                    kv.Value.Foreground = ThemeService.GetPrimaryTextBrush();
                 }
             }
 
@@ -857,24 +1013,26 @@ namespace Trazalibre.UI {
                 }
                 _isUpdatingComboSelection = false;
             } else if (_shapeContainerBorder != null) {
-                _shapeContainerBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255));
-                _shapeContainerBorder.Background = new SolidColorBrush(Color.FromArgb(120, 45, 48, 54));
+                _shapeContainerBorder.BorderBrush = ThemeService.GetSectionBorderBrush();
+                _shapeContainerBorder.Background = ThemeService.GetSectionBackground();
             }
 
             // Actualizar botón dedicado de ejes de coordenadas
             if (_axesButton != null) {
                 bool isAxes = activeId.Equals("geom_axes", StringComparison.OrdinalIgnoreCase);
-                _axesButton.Background = isAxes ? new SolidColorBrush(Color.FromArgb(200, 0, 122, 204)) : new SolidColorBrush(Color.FromArgb(160, 45, 50, 60));
-                _axesButton.BorderBrush = isAxes ? Brushes.Gold : new SolidColorBrush(Color.FromArgb(100, 0, 162, 255));
-                _axesButton.Foreground = isAxes ? Brushes.Gold : Brushes.White;
+                _axesButton.Background = isAxes ? ThemeService.GetButtonActiveBackground() : ThemeService.GetButtonIdleBackground();
+                _axesButton.BorderBrush = isAxes ? Brushes.Gold : new SolidColorBrush(Color.FromArgb(140, 0, 162, 255));
+                _axesButton.Foreground = isAxes ? Brushes.Gold : ThemeService.GetPrimaryTextBrush();
             }
 
             // Actualizar botón dedicado de vector con medidas
             if (_vectorButton != null) {
                 bool isVector = activeId.Equals("shape_vector", StringComparison.OrdinalIgnoreCase);
-                _vectorButton.Background = isVector ? new SolidColorBrush(Color.FromArgb(200, 0, 122, 204)) : new SolidColorBrush(Color.FromArgb(160, 45, 50, 60));
-                _vectorButton.BorderBrush = isVector ? Brushes.Gold : new SolidColorBrush(Color.FromArgb(120, 255, 215, 0));
-                _vectorButton.Foreground = isVector ? Brushes.Gold : Brushes.White;
+                _vectorButton.Background = isVector ? ThemeService.GetButtonActiveBackground() : ThemeService.GetButtonIdleBackground();
+                _vectorButton.BorderBrush = isVector ? Brushes.Gold : new SolidColorBrush(Color.FromArgb(140, 255, 215, 0));
+                _vectorButton.Foreground = isVector
+                    ? Brushes.Gold
+                    : (ThemeService.CurrentTheme == AppTheme.Light ? new SolidColorBrush(Color.FromRgb(160, 95, 0)) : Brushes.Gold);
             }
 
             // Actualizar selector de geometría
@@ -892,8 +1050,8 @@ namespace Trazalibre.UI {
                 }
                 _isUpdatingComboSelection = false;
             } else if (_geometryContainerBorder != null) {
-                _geometryContainerBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255));
-                _geometryContainerBorder.Background = new SolidColorBrush(Color.FromArgb(120, 45, 48, 54));
+                _geometryContainerBorder.BorderBrush = ThemeService.GetSectionBorderBrush();
+                _geometryContainerBorder.Background = ThemeService.GetSectionBackground();
             }
 
             // Actualizar selector de sellos
@@ -911,17 +1069,17 @@ namespace Trazalibre.UI {
                 }
                 _isUpdatingComboSelection = false;
             } else if (_stampContainerBorder != null) {
-                _stampContainerBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255));
-                _stampContainerBorder.Background = new SolidColorBrush(Color.FromArgb(120, 45, 48, 54));
+                _stampContainerBorder.BorderBrush = ThemeService.GetSectionBorderBrush();
+                _stampContainerBorder.Background = ThemeService.GetSectionBackground();
             }
         }
 
         private Button CreateButton(string text, Action onClick) {
             Button btn = new Button {
                 Content = text,
-                Foreground = Brushes.White,
-                Background = new SolidColorBrush(Color.FromArgb(160, 50, 53, 59)),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                Foreground = ThemeService.GetPrimaryTextBrush(),
+                Background = ThemeService.GetButtonIdleBackground(),
+                BorderBrush = ThemeService.GetButtonIdleBorder(),
                 BorderThickness = new Thickness(1),
                 Margin = new Thickness(2),
                 Padding = new Thickness(6, 4, 6, 4),
@@ -939,7 +1097,7 @@ namespace Trazalibre.UI {
                 Margin = new Thickness(3, 0, 3, 0),
                 Cursor = Cursors.Hand,
                 Background = new SolidColorBrush(color),
-                BorderBrush = Brushes.White,
+                BorderBrush = ThemeService.CurrentTheme == AppTheme.Light ? Brushes.DimGray : Brushes.White,
                 BorderThickness = new Thickness(1)
             };
             btn.Click += (s, e) => {
@@ -952,7 +1110,7 @@ namespace Trazalibre.UI {
         private UIElement CreateSeparator() {
             return new Rectangle {
                 Height = 1,
-                Fill = new SolidColorBrush(Color.FromArgb(60, 255, 255, 255)),
+                Fill = ThemeService.GetSeparatorBrush(),
                 Margin = new Thickness(0, 2, 0, 4)
             };
         }

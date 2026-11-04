@@ -49,8 +49,9 @@
 
 ### Paso 1: Abrir la aplicación
 - Haz doble clic sobre el archivo ejecutable `bin\Trazalibre.exe` (o compila automáticamente haciendo doble clic en `build.bat`).
-- Se abrirá una barra de herramientas moderna y oscura en la esquina superior derecha de la pantalla.
-- Puedes hacer clic sobre cualquier espacio libre de esa barra para arrastrarla y acomodarla donde te resulte más cómoda.
+- Aparecerá de inmediato la **Pantalla de Inicio** con el icono oficial, la versión del programa, una barra de progreso animada y el aviso *"Iniciando Trazalibre, por favor espere..."*, confirmando al instante que la aplicación se está cargando.
+- Acto seguido, se abrirá la barra de herramientas flotante en la esquina superior derecha de la pantalla con el indicador verde **`● Activo`** en su encabezado.
+- Puedes hacer clic sobre cualquier espacio libre de esa barra para arrastrarla y acomodarla donde te resulte más cómoda, o cambiar su aspecto visual entre **🌙 Oscuro**, **☀️ Claro** y **🔷 Azul CAD**.
 
 ### Paso 2: Dibujar y resaltar al instante
 - **Para dibujar libremente:** Pulsa el icono del lápiz en la barra o presiona la tecla **`P`**. Haz clic izquierdo y arrastra el ratón para trazar.
@@ -90,8 +91,13 @@
 
 ## 4. La Barra de Herramientas Flotante
 
-Al iniciar Trazalibre, se mostrará en pantalla una barra flotante oscura, compacta y elegante en el margen superior derecho:
+Al iniciar Trazalibre, tras la pantalla de bienvenida animada (`SplashWindow`), se mostrará en pantalla la barra flotante compacta y elegante en el margen superior derecho:
 
+- **Indicador de Estado (`● Activo`):** Situado en el encabezado junto al título y número de versión, confirma visualmente en todo momento que Trazalibre se encuentra en ejecución.
+- **Selector de Tema / Aspecto Visual (`🌙 Oscuro` / `☀️ Claro` / `🔷 Azul CAD`):** Ubicado en el encabezado superior, permite alternar en vivo toda la paleta visual de la barra flotante entre tres estilos profesionales:
+  - **🌙 Oscuro:** Tema grafito de alto contraste para minimizar distracciones.
+  - **☀️ Claro:** Tema luminoso tipo estudio, ideal para entornos diurnos o pizarras blancas.
+  - **🔷 Azul CAD:** Tema técnico inspirado en estaciones de ingeniería y diseño asistido por computadora.
 - **Desplazamiento:** Puedes hacer clic sobre cualquier sector libre de la barra y arrastrarla a la posición de la pantalla que te resulte más cómoda.
 - **Botón de Cierre (✕):** Ubicado en la esquina superior derecha del encabezado, cierra de inmediato la aplicación y libera todos los recursos del sistema.
 - **Persistencia Visual:** La barra permanece siempre visible por encima de cualquier ventana (`Topmost`), permitiéndote cambiar de herramienta en cualquier momento.
@@ -299,11 +305,15 @@ Para agilizar la corrección de trabajos, diagramas de flujo y revisiones visual
 
 ## 12. Modos de Fondo (Pizarra y Pantalla Transparente)
 
-En la sección inferior de la barra puedes alternar el entorno de trabajo:
+En la sección **`🖼️ Fondo de Pantalla / Lienzo:`** de la barra puedes elegir entre **7 modos de lienzo** (accesibles desde el selector desplegable o mediante los 4 botones rápidos **`🖥️ Escritorio`**, **`⬜ Clara`**, **`⬛ Oscura`** y **`📐 Cuadrícula`**):
 
-- **🖥️ Pantalla Transparente:** Modo por defecto. El fondo es completamente invisible, lo que te permite anotar sobre videos, presentaciones, código o páginas web.
-- **⬜ Pizarra Blanca:** Cubre toda la pantalla con un fondo blanco impecable, transformando tu monitor en una pizarra de clase o reunión.
-- **⬛ Pizarra Negra:** Cubre la pantalla con fondo oscuro tipo pizarra tradicional, ideal para trabajar con colores claros (blanco, oro, lima) reduciendo la fatiga visual.
+1. **🖥️ Escritorio (Transparente):** Modo por defecto. El fondo es completamente invisible, lo que te permite anotar sobre videos, presentaciones, código o páginas web.
+2. **⬜ Pizarra Clara (Blanca):** Cubre toda la pantalla con un fondo blanco limpio (`#F8FAFC`), transformando tu monitor en una pizarra de aula o sala de juntas.
+3. **⬛ Pizarra Oscura (Grafito):** Cubre la pantalla con un fondo oscuro elegante (`#161920`), ideal para trabajar con trazos claros (blanco, amarillo, cian) reduciendo la fatiga visual.
+4. **📐 Cuadrícula Clara (Milimetrada):** Hoja técnica clara con retícula calibrada a la escala de Trazalibre (subdivisiones cada **5 mm / 25 px** y líneas principales cada **10 mm / 1 cm / 50 px**), perfecta para clases de matemáticas, física y geometría.
+5. **🌐 Cuadrícula Oscura (CAD):** Lienzo oscuro estilo estación CAD con grilla milimetrada cada 5 mm y 10 mm para diseño técnico de alto contraste.
+6. **🟦 Plano Azul Ingeniería (Blueprint):** Lienzo clásico de plano de ingeniería en azul profundo con retícula cian milimetrada cada 5 mm y 10 mm.
+7. **📄 Hoja Punteada (Dot Grid):** Libreta moderna con matriz de puntos guía equidistantes cada **5 mm (25 px)**, ideal para esquemas, bocetos limpios y caligrafía sin sobrecargar el fondo.
 
 ---
 
