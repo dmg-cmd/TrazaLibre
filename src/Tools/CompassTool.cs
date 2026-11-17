@@ -42,6 +42,20 @@ namespace Trazalibre.Tools {
             get { return _metric; }
         }
 
+        public double ArcSpan {
+            get { return _arcSpan; }
+        }
+
+        public void SetArcSpan(double span) {
+            if (span < 15.0) span = 15.0;
+            if (span > 360.0) span = 360.0;
+            _arcSpan = span;
+            if (_visual != null) {
+                _visual.ArcSpan = _arcSpan;
+                _visual.InvalidateVisual();
+            }
+        }
+
         public void Activate(IAnnotationContext context) {
             _context = context;
             context.SetClickThrough(false);
@@ -58,14 +72,23 @@ namespace Trazalibre.Tools {
                 _context.Canvas.Children.Add(_visual);
             }
 
+            Point workPt = ToolContextMenuHelper.GetInitialWorkPoint(context, _center);
+            SnapResult initialSnap = SnapService.FindSnapPoint(context.Canvas.Strokes, workPt);
+            _center = initialSnap.IsSnapped ? initialSnap.Point : workPt;
+
             _visual.Visibility = Visibility.Visible;
             _visual.Color = _context.CurrentColor;
             _visual.Size = _context.CurrentSize;
             _visual.Center = _center;
+            _visual.IsSnapped = initialSnap.IsSnapped;
+            _visual.SnapPoint = initialSnap.Point;
             _radius = _metric.ValuePixels;
             _visual.Radius = _radius;
             _visual.ArcSpan = _arcSpan;
             _visual.IsDrawing = false;
+            _visual.InvalidateVisual();
+
+            context.Canvas.ContextMenu = ToolContextMenuHelper.CreateGeometryContextMenu(context);
 
             if (_mouseDownHandler == null) {
                 _mouseDownHandler = OnCanvasMouseDown;
@@ -80,6 +103,10 @@ namespace Trazalibre.Tools {
 
         public void Deactivate(IAnnotationContext context) {
             DetachEvents();
+
+            if (context != null && context.Canvas != null) {
+                context.Canvas.ContextMenu = null;
+            }
 
             if (_visual != null && context != null && context.Canvas != null) {
                 if (context.Canvas.Children.Contains(_visual)) {
@@ -162,11 +189,14 @@ namespace Trazalibre.Tools {
             if (e.RightButton == MouseButtonState.Pressed) {
                 _isDrawing = false;
                 _metric.ClearInput();
+                if (_context.Canvas.IsMouseCaptured) {
+                    _context.Canvas.ReleaseMouseCapture();
+                }
                 if (_visual != null) {
                     _visual.IsDrawing = false;
                     _visual.InvalidateVisual();
                 }
-                e.Handled = true;
+                // No marcar e.Handled = true para permitir la apertura del menú contextual
                 return;
             }
 

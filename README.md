@@ -1,6 +1,6 @@
-# Trazalibre (Pizarra y Marcador sobre Pantalla) — `v1.3.1`
+# Trazalibre (Pizarra y Marcador sobre Pantalla) — `v1.4.0`
 
-**Trazalibre** (`v1.3.1`) es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada con precisión opcional de dibujo técnico CAD.
+**Trazalibre** (`v1.4.0`) es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada con precisión opcional de dibujo técnico CAD.
 
 ---
 
@@ -20,7 +20,7 @@ Imagina tener un **marcador mágico** con el que puedes dibujar, escribir o señ
 
 1. **Abrir la aplicación:**
    * Ejecuta `bin\Trazalibre.exe` (o compila al instante con doble clic en `build.bat`).
-   * Gracias al **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, se mostrará de inmediato la **Pantalla de Inicio** con el icono oficial, versión (`v1.3.1`), barra de progreso animada y **carga progresiva en 4 etapas** (*"⏳ Iniciando Trazalibre, por favor espere..."*).
+   * Gracias al **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, se mostrará de inmediato la **Pantalla de Inicio** con el icono oficial, versión (`v1.4.0`), barra de progreso animada y **carga progresiva en 4 etapas** (*"⏳ Iniciando Trazalibre, por favor espere..."*).
    * A continuación aparecerá la barra de herramientas flotante en la esquina superior derecha con el indicador **`● Activo`** y el selector de tema (**🌙 Oscuro**, **☀️ Claro** o **🔷 Azul CAD**). Puedes arrastrarla a cualquier lugar de la pantalla que prefieras.
 
 2. **Comenzar a dibujar:**
@@ -56,7 +56,7 @@ G:\Trazalibre\
 │
 ├───src\
 │   │   Program.cs               <- Arranque en dos fases con desacoplamiento JIT (NoInlining) y composición en 4 etapas
-│   │   AssemblyInfo.cs          <- Metadatos de ensamblado e información de versión Win32 (v1.3.1)
+│   │   AssemblyInfo.cs          <- Metadatos de ensamblado e información de versión Win32 (v1.4.0)
 │   │   app.ico                  <- Icono oficial multirresolución Win32
 │   │
 │   ├───Core\                    <- Contratos e interfaces base (Sin dependencias externas)
@@ -74,6 +74,8 @@ G:\Trazalibre\
 │   │       SnapService.cs         <- Captura magnética de extremos (Endpoint Snapping) e indicadores CAD
 │   │       MetricDimensionHelper.cs <- Controlador de precisión milimétrica (1 mm, entrada tipo CAD)
 │   │       TextStyleService.cs    <- Gestión sincronizada de fuente, tamaño (10-72 pt), negrita y cursiva
+│   │       ToolContextMenuHelper.cs <- Menú contextual unificado (clic derecho) con Regla, Geometría y ajustes rápidos
+│   │       VectorService.cs       <- Motor de modo vector, puntas de flecha y acotación técnica automática
 │   │       HotkeyService.cs       <- Gestor de teclas rápidas globales
 │   │
 │   ├───Tools\                   <- Implementaciones aisladas de herramientas
@@ -152,21 +154,45 @@ G:\Trazalibre\
 | **`C`** | **Limpiar** todos los trazos de la pantalla. |
 | **`Ctrl + Z`** | **Deshacer** el último trazo. |
 | **`Ctrl + S`** | **Capturar sector de pantalla:** Activa el selector interactivo para arrastrar con el ratón el sector a capturar, guardar en PNG y copiar al portapapeles (`ESC` para cancelar). |
+| **`Ctrl + D`** | **📥 Volcar Dibujo al Documento / Aplicación:** Recorta limpiamente todos los trazos sobre fondo blanco, los pega directamente en el documento de la aplicación debajo y limpia el lienzo (con soporte para `Ctrl + Z`). |
+| **`Ctrl + +` / `Ctrl + -`** | **Zoom del lienzo:** Acerca o aleja la vista entre **50 % y 400 %** en pasos de 25 % (también con **`Ctrl + Rueda del ratón`** centrado en el cursor). |
+| **`Ctrl + 0`** | **Restablecer Zoom (100 %):** Devuelve la escala y el desplazamiento del lienzo a su posición original. |
+| **Botón central / `Espacio + Arrastrar`** | **Desplazamiento (Pan):** Mueve el lienzo ampliado manteniendo la relación 1:1 de todos los trazos. |
+| **Clic Derecho** | **Menú Contextual Rápido:** Cambia al instante entre Regla, Escuadras, Transportador, Compás, Ejes, Vector o Línea conservando el punto de trabajo en el lienzo. |
 | **`V`** | Herramienta **🏹 Vector con Medidas:** Traza un vector entre dos puntos con visor en tiempo real de módulo en mm/cm, ángulo trigonométrico y componentes $\Delta X, \Delta Y$, estampando la cota técnica permanente. |
 | **`D`** | **Acotación Vectorial (Módulo y Ángulo):** Alterna el estampado automático de la cota técnica en el lienzo con el formato `[módulo mm ∠ ángulo°]` perpendicular al vector. |
+
+---
+
+## 🧭 Menú Contextual Rápido, Grilla Milimetrada y Zoom del Lienzo
+
+* **🖱️ Menú Contextual Rápido de Geometría y Trazado (Clic Derecho):**
+  * Disponible al hacer clic derecho sobre el lienzo con cualquier herramienta de **Geometría** (**Regla**, **Escuadra 45°**, **Escuadra 30°/60°**, **Transportador 360°**, **Compás**, **Ejes Coordenados**), **Vector**, **Formas** o **Dibujo Libre** (**Lápiz**, **Resaltador**, **Borrador**).
+  * **Cambio sin perder la referencia:** Al elegir otro instrumento desde el menú contextual, Trazalibre conserva la coordenada exacta donde abriste el menú y posiciona allí el nuevo instrumento (con soporte magnético de `SnapService`).
+  * **Ajustes contextuales integrados:** Permite conmutar el **Modo Vector (`[V]`)** y la **Cota Técnica (`[D]`)**, elegir un **Ángulo Rápido** (`0°`, `30°`, `45°`, `60°`, `90°`, `135°`, `180°`, `270°`), ajustar la **Amplitud de Arco** del Compás, alternar la **Grilla Milimetrada** o tamaño de los Ejes y modificar el **Grosor** y **Color** sin acudir a la barra flotante.
+
+* **📏 Grilla Milimetrada en Ejes Coordenados (`AxesTool`):**
+  * Desde el botón **`📏 Grilla Milimetrada: ON/OFF`** en la barra o desde el menú contextual de los Ejes Coordenados, puedes proyectar una retícula milimetrada fina en los cuatro cuadrantes (subdivisiones cada **1 mm**, **5 mm** y **10 mm**) calibrada a la escala del sistema de coordenadas.
+
+* **🔎 Zoom y Desplazamiento (Pan) 1:1 (`OverlayWindow`):**
+  * Permite ampliar o alejar el lienzo de trabajo entre **50 % y 400 %** con **`Ctrl + Rueda del ratón`**, los atajos **`Ctrl + +`** / **`Ctrl + -`** / **`Ctrl + 0`** o los botones **`🔍−`**, **`🔎 Zoom: %`** y **`🔍+`** de la barra, y desplazarte libremente manteniendo el **botón central del ratón** o **`Espacio + Arrastrar`**.
+
+* **📥 Volcar Dibujo al Documento / Aplicación (`Ctrl + D`):**
+  * Al dibujar sobre un procesador de textos (LibreOffice Writer, Microsoft Word, Google Docs, etc.), pulsa **`Ctrl + D`**, el botón **`📥 Volcar a App [Ctrl+D]`** en la barra o **`📥 Volcar Dibujo al Documento [Ctrl+D]`** en el menú contextual.
+  * Trazalibre renderiza únicamente tus trazos recortados a su caja exacta sobre un fondo blanco limpio (oscureciendo trazos blancos puros para garantizar contraste), guarda un respaldo PNG en `Mis Imágenes\Trazalibre`, enfoca la ventana de la aplicación debajo del dibujo, pega el gráfico automáticamente mediante `Ctrl + V`, limpia el lienzo (recuperable con `Ctrl + Z`) y activa el **Modo Ratón** para que sigas editando tu documento al instante.
 
 ---
 
 ## 🎨 Temas de Interfaz, Pantalla de Inicio y 7 Modos de Lienzo
 
 * **🚀 Pantalla de Inicio Instantánea y Arranque en Dos Fases (`Program.cs` / `SplashWindow.cs`):**
-  * **Desacoplamiento JIT (`[MethodImpl(MethodImplOptions.NoInlining)]`):** `Main()` instancia y renderiza `SplashWindow` antes de que el compilador JIT de .NET cargue los 21 módulos de herramientas, servicios y lienzos pesados, logrando que el recuadro de bienvenida aparezca en el mismo instante en que el usuario hace doble clic.
+  * **Desacoplamiento JIT (`[MethodImpl(MethodImplOptions.NoInlining)]`):** `Main()` instancia y renderiza `SplashWindow` antes de que el compilador JIT de .NET cargue los módulos de herramientas, servicios y lienzos pesados, logrando que el recuadro de bienvenida aparezca en el mismo instante en que el usuario hace doble clic.
   * **Renderizado ultraligero y carga progresiva en 4 etapas animadas:** `SplashWindow` prescinde de efectos de sombreado costosos (`DropShadowEffect`) en favor de bordes multicapa e impulsa una barra de progreso suave a través de 4 etapas secuenciales:
     1. `⏳ Cargando herramientas e instrumentos CAD, espere...` (35%)
     2. `⏳ Preparando lienzo multimonitor y cuadrículas...` (68%)
     3. `⏳ Configurando barra de herramientas y atajos...` (92%)
     4. `✅ ¡Trazalibre listo! Abriendo espacio de trabajo...` (100%)
-  * **Indicador de ejecución permanente:** En el encabezado de la barra de herramientas principal permanece visible el indicador verde **`● Activo`** junto a la versión **`v1.3.1`**, confirmando en todo momento que la aplicación está activa.
+  * **Indicador de ejecución permanente:** En la barra de herramientas principal permanece visible el indicador verde **`● Activo`** y en la pantalla de inicio se muestra la versión **`v1.4.0`**, confirmando en todo momento que la aplicación está activa.
 * **🎨 Selector de Aspecto / Tema de la Interfaz (`ThemeService.cs`):**
   * Desde el botón ubicado en el encabezado de la barra de herramientas puedes alternar en tiempo real entre tres temas visuales: **🌙 Oscuro**, **☀️ Claro** y **🔷 Azul CAD**.
 * **🖼️ 7 Modos de Fondo de Pantalla y Lienzos Técnicos (`BackgroundMode.cs` / `BackgroundService.cs`):**

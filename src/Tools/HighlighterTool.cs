@@ -3,6 +3,7 @@ using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
 using Trazalibre.Core;
+using Trazalibre.Services;
 
 namespace Trazalibre.Tools {
     public class HighlighterTool : ITool {
@@ -14,10 +15,15 @@ namespace Trazalibre.Tools {
             context.SetClickThrough(false);
             context.Canvas.EditingMode = InkCanvasEditingMode.Ink;
             context.Canvas.Cursor = Cursors.Pen;
+            context.Canvas.ContextMenu = ToolContextMenuHelper.CreateGeometryContextMenu(context);
             ApplyAttributes(context);
         }
 
-        public void Deactivate(IAnnotationContext context) { }
+        public void Deactivate(IAnnotationContext context) {
+            if (context != null && context.Canvas != null) {
+                context.Canvas.ContextMenu = null;
+            }
+        }
 
         public void OnColorChanged(IAnnotationContext context, Color newColor) {
             ApplyAttributes(context);

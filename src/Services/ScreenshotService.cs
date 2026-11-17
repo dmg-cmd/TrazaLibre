@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Windows;
+using System.Windows.Ink;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Trazalibre.Core;
 using Trazalibre.UI;
 
 namespace Trazalibre.Services {
@@ -79,6 +82,114 @@ namespace Trazalibre.Services {
             } finally {
                 // Restaurar la visibilidad de las barras de herramientas
                 foreach (Window win in hiddenToolbars) {
+                    win.Visibility = Visibility.Visible;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Renderiza limpiamente los trazos actuales del lienzo (recortados a su área exacta sobre fondo blanco),
+        /// los copia al portapapeles, guarda un respaldo PNG, limpia el lienzo conservando el historial Undo
+        /// y enfoca la aplicación subyacente para pegar el dibujo directamente (Ctrl + V).
+        /// </summary>
+        public static bool MergeDrawingIntoApplication(IAnnotationContext context) {
+            if (context == null || context.Canvas == null || context.Canvas.Strokes.Count == 0) {
+                MessageBox.Show(
+                    "No hay ningún dibujo en el lienzo para volcar al documento.",
+                    "Volcar a Documento",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return false;
+            }
+
+            Rect strokeBounds = context.Canvas.Strokes.GetBounds();
+            if (strokeBounds.IsEmpty || strokeBounds.Width < 2.0 || strokeBounds.Height < 2.0) {
+                return false;
+            }
+
+            double padding = 16.0;
+            Rect cropRect = Rect.Inflate(strokeBounds, padding, padding);
+            int pixelWidth = Math.Max(16, (int)Math.Ceiling(cropRect.Width));
+            int pixelHeight = Math.Max(16, (int)Math.Ceiling(cropRect.Height));
+
+            // Calcular el punto de pantalla antes de ocultar la ventana del lienzo
+            int targetX;
+            int targetY;
+            try {
+                Point screenCenter = context.Canvas.PointToScreen(
+                    new Point(cropRect.Left + cropRect.Width / 2.0, cropRect.Top + cropRect.Height / 2.0));
+                targetX = (int)Math.Round(screenCenter.X);
+                targetY = (int)Math.Round(screenCenter.Y);
+            } catch {
+                targetX = (int)Math.Round(SystemParameters.VirtualScreenLeft + cropRect.Left + cropRect.Width / 2.0);
+                targetY = (int)Math.Round(SystemParameters.VirtualScreenTop + cropRect.Top + cropRect.Height / 2.0);
+            }
+
+            // Clonar trazos y oscurecer trazos blancos puros para garantizar visibilidad sobre fondo blanco
+            StrokeCollection strokesToRender = context.Canvas.Strokes.Clone();
+            foreach (Stroke s in strokesToRender) {
+                if (s != null && s.DrawingAttributes.Color == Colors.White) {
+                    s.DrawingAttributes.Color = Color.FromRgb(30, 35, 45);
+                }
+            }
+
+            DrawingVisual dv = new DrawingVisual();
+            using (DrawingContext dc = dv.RenderOpen()) {
+                dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, pixelWidth, pixelHeight));
+                dc.PushTransform(new TranslateTransform(-cropRect.Left, -cropRect.Top));
+                strokesToRender.Draw(dc);
+                dc.Pop();
+            }
+
+            RenderTargetBitmap rtb = new RenderTargetBitmap(pixelWidth, pixelHeight, 96.0, 96.0, PixelFormats.Pbgra32);
+            rtb.Render(dv);
+            rtb.Freeze();
+
+            // Guardar copia de respaldo en Mis Imágenes\Trazalibre
+            string picturesPath = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+            string folder = Path.Combine(picturesPath, "Trazalibre");
+            if (!Directory.Exists(folder)) {
+                Directory.CreateDirectory(folder);
+            }
+            string filename = string.Format("Volcado_Documento_{0:yyyyMMdd_HHmmss}.png", DateTime.Now);
+            string fullPath = Path.Combine(folder, filename);
+
+            PngBitmapEncoder encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(rtb));
+            using (FileStream fs = new FileStream(fullPath, FileMode.Create, FileAccess.Write)) {
+                encoder.Save(fs);
+            }
+
+            Clipboard.SetImage(rtb);
+
+            // Archivar trazos para poder recuperarlos con Ctrl+Z, limpiar el lienzo y pasar a Modo Ratón
+            OverlayWindow overlay = context as OverlayWindow;
+            if (overlay != null) {
+                overlay.ArchiveAndClearStrokes();
+            } else {
+                context.Clear();
+            }
+
+            if (context.Registry != null) {
+                context.Registry.SelectTool("mouse");
+            }
+
+            List<Window> hiddenWindows = new List<Window>();
+            try {
+                if (Application.Current != null) {
+                    foreach (Window win in Application.Current.Windows) {
+                        if ((win is OverlayWindow || win is ToolbarWindow) && win.IsVisible) {
+                            hiddenWindows.Add(win);
+                            win.Visibility = Visibility.Hidden;
+                        }
+                    }
+                }
+
+                Thread.Sleep(40);
+                NativeWindowService.FocusWindowAtPointAndPaste(targetX, targetY);
+                return true;
+            } finally {
+                foreach (Window win in hiddenWindows) {
                     win.Visibility = Visibility.Visible;
                 }
             }

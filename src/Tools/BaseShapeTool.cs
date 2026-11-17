@@ -30,7 +30,7 @@ namespace Trazalibre.Tools {
 
         protected abstract IEnumerable<Point> GeneratePoints(Point start, Point current);
 
-        public void Activate(IAnnotationContext context) {
+        public virtual void Activate(IAnnotationContext context) {
             _context = context;
             context.SetClickThrough(false);
             context.Canvas.EditingMode = InkCanvasEditingMode.None;
@@ -57,17 +57,22 @@ namespace Trazalibre.Tools {
             context.Canvas.PreviewMouseDown += _mouseDownHandler;
             context.Canvas.PreviewMouseMove += _mouseMoveHandler;
             context.Canvas.PreviewMouseUp += _mouseUpHandler;
+
+            context.Canvas.ContextMenu = ToolContextMenuHelper.CreateGeometryContextMenu(context);
         }
 
-        public void Deactivate(IAnnotationContext context) {
+        public virtual void Deactivate(IAnnotationContext context) {
             CleanPreview();
             if (_snapVisual != null && context != null && context.Canvas != null) {
                 context.Canvas.Children.Remove(_snapVisual);
             }
-            if (context != null && context.Canvas != null && _mouseDownHandler != null) {
-                context.Canvas.PreviewMouseDown -= _mouseDownHandler;
-                context.Canvas.PreviewMouseMove -= _mouseMoveHandler;
-                context.Canvas.PreviewMouseUp -= _mouseUpHandler;
+            if (context != null && context.Canvas != null) {
+                context.Canvas.ContextMenu = null;
+                if (_mouseDownHandler != null) {
+                    context.Canvas.PreviewMouseDown -= _mouseDownHandler;
+                    context.Canvas.PreviewMouseMove -= _mouseMoveHandler;
+                    context.Canvas.PreviewMouseUp -= _mouseUpHandler;
+                }
             }
             _isDrawing = false;
             _context = null;

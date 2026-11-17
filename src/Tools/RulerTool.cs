@@ -31,6 +31,7 @@ namespace Trazalibre.Tools {
         private MouseButtonEventHandler _mouseUpHandler;
         private MouseWheelEventHandler _mouseWheelHandler;
         private KeyEventHandler _keyDownHandler;
+        private EventHandler _vectorStateChangedHandler;
 
         private double _angle = 0.0; // Ángulo de rotación de la regla en grados
         private Point _origin = new Point(250, 250);
@@ -40,6 +41,20 @@ namespace Trazalibre.Tools {
 
         public MetricInputController Metric {
             get { return _metric; }
+        }
+
+        public double Angle {
+            get { return _angle; }
+        }
+
+        public void SetAngle(double angle) {
+            double normalized = angle % 360.0;
+            if (normalized < 0) normalized += 360.0;
+            _angle = normalized;
+            if (_visual != null) {
+                _visual.Angle = _angle;
+                _visual.InvalidateVisual();
+            }
         }
 
         public void Activate(IAnnotationContext context) {
@@ -58,14 +73,23 @@ namespace Trazalibre.Tools {
                 _context.Canvas.Children.Add(_visual);
             }
 
+            Point workPt = ToolContextMenuHelper.GetInitialWorkPoint(context, _origin);
+            SnapResult initialSnap = SnapService.FindSnapPoint(context.Canvas.Strokes, workPt);
+            _origin = initialSnap.IsSnapped ? initialSnap.Point : workPt;
+
             _visual.Visibility = Visibility.Visible;
             _visual.Color = _context.CurrentColor;
             _visual.Size = _context.CurrentSize;
             _visual.Angle = _angle;
             _visual.Origin = _origin;
+            _visual.IsSnapped = initialSnap.IsSnapped;
+            _visual.SnapPoint = initialSnap.Point;
             _visual.IsDrawing = false;
             _drawLength = _metric.ValuePixels;
             _visual.DrawLength = _drawLength;
+            _visual.InvalidateVisual();
+
+            context.Canvas.ContextMenu = ToolContextMenuHelper.CreateGeometryContextMenu(context);
 
             if (_mouseDownHandler == null) {
                 _mouseDownHandler = OnCanvasMouseDown;
@@ -73,6 +97,7 @@ namespace Trazalibre.Tools {
                 _mouseUpHandler = OnCanvasMouseUp;
                 _mouseWheelHandler = OnCanvasMouseWheel;
                 _keyDownHandler = OnCanvasKeyDown;
+                _vectorStateChangedHandler = OnVectorStateChanged;
             }
 
             AttachEvents();
@@ -80,6 +105,10 @@ namespace Trazalibre.Tools {
 
         public void Deactivate(IAnnotationContext context) {
             DetachEvents();
+
+            if (context != null && context.Canvas != null) {
+                context.Canvas.ContextMenu = null;
+            }
 
             if (_visual != null && context != null && context.Canvas != null) {
                 if (context.Canvas.Children.Contains(_visual)) {
@@ -106,6 +135,12 @@ namespace Trazalibre.Tools {
             }
         }
 
+        private void OnVectorStateChanged(object sender, EventArgs e) {
+            if (_visual != null) {
+                _visual.InvalidateVisual();
+            }
+        }
+
         private void AttachEvents() {
             if (_context == null || _context.Canvas == null) return;
             DetachEvents();
@@ -115,6 +150,11 @@ namespace Trazalibre.Tools {
             _context.Canvas.PreviewMouseUp += _mouseUpHandler;
             _context.Canvas.PreviewMouseWheel += _mouseWheelHandler;
             _context.Canvas.PreviewKeyDown += _keyDownHandler;
+
+            if (_vectorStateChangedHandler != null) {
+                VectorService.VectorModeChanged += _vectorStateChangedHandler;
+                VectorService.DimensionModeChanged += _vectorStateChangedHandler;
+            }
         }
 
         private void DetachEvents() {
@@ -125,6 +165,11 @@ namespace Trazalibre.Tools {
             _context.Canvas.PreviewMouseUp -= _mouseUpHandler;
             _context.Canvas.PreviewMouseWheel -= _mouseWheelHandler;
             _context.Canvas.PreviewKeyDown -= _keyDownHandler;
+
+            if (_vectorStateChangedHandler != null) {
+                VectorService.VectorModeChanged -= _vectorStateChangedHandler;
+                VectorService.DimensionModeChanged -= _vectorStateChangedHandler;
+            }
         }
 
         private void OnCanvasMouseWheel(object sender, MouseWheelEventArgs e) {
@@ -162,11 +207,14 @@ namespace Trazalibre.Tools {
             if (e.RightButton == MouseButtonState.Pressed) {
                 _isDrawing = false;
                 _metric.ClearInput();
+                if (_context.Canvas.IsMouseCaptured) {
+                    _context.Canvas.ReleaseMouseCapture();
+                }
                 if (_visual != null) {
                     _visual.IsDrawing = false;
                     _visual.InvalidateVisual();
                 }
-                e.Handled = true;
+                // No marcar e.Handled = true para permitir la apertura del menú contextual
                 return;
             }
 
@@ -328,7 +376,8 @@ namespace Trazalibre.Tools {
                     _drawLength,
                     _angle,
                     _context.CurrentColor,
-                    thickness
+                    thickness,
+                    _context.Canvas.Strokes
                 );
                 if (dimStrokes != null && dimStrokes.Count > 0) {
                     _context.AddStrokes(dimStrokes);

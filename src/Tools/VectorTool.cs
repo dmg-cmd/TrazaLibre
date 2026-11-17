@@ -21,16 +21,33 @@ namespace Trazalibre.Tools {
         public string DisplayName { get { return "Vector con Medidas"; } }
         public string Icon { get { return "🏹"; } }
 
+        private enum VectorState {
+            Idle,
+            DraggingVector,
+            PlacingLabel
+        }
+
         private IAnnotationContext _context;
         private VectorVisualOverlay _visual;
 
         private MouseButtonEventHandler _mouseDownHandler;
         private MouseEventHandler _mouseMoveHandler;
         private MouseButtonEventHandler _mouseUpHandler;
+        private KeyEventHandler _keyDownHandler;
+        private ContextMenuEventHandler _contextMenuOpeningHandler;
 
+        private VectorState _state = VectorState.Idle;
         private Point _startPoint;
         private Point _currentPoint;
-        private bool _isDrawing = false;
+        private Point _confirmedEndPoint;
+        private Point _labelCenter;
+        private double _confirmedDist;
+        private double _confirmedAngleDeg;
+        private bool _suppressNextContextMenu = false;
+
+        public bool IsPlacingLabel {
+            get { return _state == VectorState.PlacingLabel; }
+        }
 
         public void Activate(IAnnotationContext context) {
             _context = context;
@@ -48,28 +65,43 @@ namespace Trazalibre.Tools {
                 _context.Canvas.Children.Add(_visual);
             }
 
+            _state = VectorState.Idle;
+            _suppressNextContextMenu = false;
             _visual.Visibility = Visibility.Visible;
             _visual.Color = _context.CurrentColor;
             _visual.Size = _context.CurrentSize;
             _visual.Reset();
 
+            context.Canvas.ContextMenu = ToolContextMenuHelper.CreateVectorContextMenu(context);
+
             if (_mouseDownHandler == null) {
                 _mouseDownHandler = OnCanvasMouseDown;
                 _mouseMoveHandler = OnCanvasMouseMove;
                 _mouseUpHandler = OnCanvasMouseUp;
+                _keyDownHandler = OnCanvasKeyDown;
+                _contextMenuOpeningHandler = OnCanvasContextMenuOpening;
             }
 
             AttachEvents();
         }
 
         public void Deactivate(IAnnotationContext context) {
+            if (_state == VectorState.PlacingLabel && _context != null) {
+                CommitVectorWithLabel(VectorService.IsDimensionEnabled, _labelCenter);
+            }
+
             DetachEvents();
+
+            if (context != null && context.Canvas != null) {
+                context.Canvas.ContextMenu = null;
+            }
 
             if (_visual != null && _context != null && _context.Canvas != null) {
                 _context.Canvas.Children.Remove(_visual);
             }
 
-            _isDrawing = false;
+            _state = VectorState.Idle;
+            _suppressNextContextMenu = false;
             _context = null;
         }
 
@@ -94,6 +126,8 @@ namespace Trazalibre.Tools {
             _context.Canvas.PreviewMouseDown += _mouseDownHandler;
             _context.Canvas.PreviewMouseMove += _mouseMoveHandler;
             _context.Canvas.PreviewMouseUp += _mouseUpHandler;
+            _context.Canvas.PreviewKeyDown += _keyDownHandler;
+            _context.Canvas.ContextMenuOpening += _contextMenuOpeningHandler;
         }
 
         private void DetachEvents() {
@@ -102,27 +136,58 @@ namespace Trazalibre.Tools {
             _context.Canvas.PreviewMouseDown -= _mouseDownHandler;
             _context.Canvas.PreviewMouseMove -= _mouseMoveHandler;
             _context.Canvas.PreviewMouseUp -= _mouseUpHandler;
+            _context.Canvas.PreviewKeyDown -= _keyDownHandler;
+            _context.Canvas.ContextMenuOpening -= _contextMenuOpeningHandler;
+        }
+
+        private void OnCanvasContextMenuOpening(object sender, ContextMenuEventArgs e) {
+            if (_suppressNextContextMenu) {
+                _suppressNextContextMenu = false;
+                e.Handled = true;
+            }
         }
 
         private void OnCanvasMouseDown(object sender, MouseButtonEventArgs e) {
-            if (e.LeftButton != MouseButtonState.Pressed || _context == null) return;
+            if (_context == null) return;
+            _context.Canvas.Focus();
 
-            Point clickPos = e.GetPosition(_context.Canvas);
-            SnapResult snap = SnapService.FindSnapPoint(_context.Canvas.Strokes, clickPos);
-
-            _startPoint = snap.IsSnapped ? snap.Point : clickPos;
-            _currentPoint = _startPoint;
-            _isDrawing = true;
-
-            if (_visual != null) {
-                _visual.StartPoint = _startPoint;
-                _visual.CurrentPoint = _currentPoint;
-                _visual.IsActive = true;
-                _visual.SnapStart = snap;
-                _visual.InvalidateVisual();
+            if (_state == VectorState.PlacingLabel) {
+                if (e.LeftButton == MouseButtonState.Pressed) {
+                    _labelCenter = e.GetPosition(_context.Canvas);
+                    CommitVectorWithLabel(true, _labelCenter);
+                    e.Handled = true;
+                    return;
+                }
+                if (e.RightButton == MouseButtonState.Pressed) {
+                    _suppressNextContextMenu = true;
+                    CommitVectorWithLabel(false, _labelCenter);
+                    e.Handled = true;
+                    return;
+                }
+                return;
             }
 
-            e.Handled = true;
+            if (_state == VectorState.Idle && e.LeftButton == MouseButtonState.Pressed) {
+                _suppressNextContextMenu = false;
+                Point clickPos = e.GetPosition(_context.Canvas);
+                SnapResult snap = SnapService.FindSnapPoint(_context.Canvas.Strokes, clickPos);
+
+                _startPoint = snap.IsSnapped ? snap.Point : clickPos;
+                _currentPoint = _startPoint;
+                _state = VectorState.DraggingVector;
+
+                if (_visual != null) {
+                    _visual.StartPoint = _startPoint;
+                    _visual.CurrentPoint = _currentPoint;
+                    _visual.IsActive = true;
+                    _visual.IsPlacingLabel = false;
+                    _visual.SnapStart = snap;
+                    _visual.SnapEnd = new SnapResult();
+                    _visual.InvalidateVisual();
+                }
+
+                e.Handled = true;
+            }
         }
 
         private void OnCanvasMouseMove(object sender, MouseEventArgs e) {
@@ -130,46 +195,50 @@ namespace Trazalibre.Tools {
 
             Point mousePos = e.GetPosition(_context.Canvas);
 
-            if (!_isDrawing) {
+            if (_state == VectorState.Idle) {
                 // Previsualización de anclaje antes de hacer clic en el punto 1
                 SnapResult hoverSnap = SnapService.FindSnapPoint(_context.Canvas.Strokes, mousePos);
                 if (_visual != null) {
                     _visual.HoverPoint = mousePos;
                     _visual.HoverSnap = hoverSnap;
                     _visual.IsActive = false;
+                    _visual.IsPlacingLabel = false;
                     _visual.InvalidateVisual();
                 }
                 return;
             }
 
-            // Calculando punto 2 mientras se arrastra
-            SnapResult endSnap = SnapService.FindSnapPoint(_context.Canvas.Strokes, mousePos);
-            Point effectivePoint;
-
-            if (endSnap.IsSnapped) {
-                effectivePoint = endSnap.Point;
-            } else if ((Keyboard.Modifiers & ModifierKeys.Alt) != ModifierKeys.Alt) {
-                // Cuantización métrica milimétrica (5 px = 1 mm)
-                double dx = mousePos.X - _startPoint.X;
-                double dy = mousePos.Y - _startPoint.Y;
-                double dist = Math.Sqrt(dx * dx + dy * dy);
-                if (dist > 4.0) {
-                    double snappedDist = MetricUnits.SnapToMm(dist);
-                    double ratio = snappedDist / dist;
-                    effectivePoint = new Point(_startPoint.X + dx * ratio, _startPoint.Y + dy * ratio);
-                } else {
-                    effectivePoint = mousePos;
+            if (_state == VectorState.PlacingLabel) {
+                _labelCenter = mousePos;
+                if (_visual != null) {
+                    _visual.LabelCenter = _labelCenter;
+                    _visual.IsPlacingLabel = true;
+                    _visual.IsActive = true;
+                    _visual.InvalidateVisual();
                 }
-            } else {
-                effectivePoint = mousePos;
+                e.Handled = true;
+                return;
             }
 
+            // Calculando punto 2 mientras se arrastra
+            SnapResult endSnap = SnapService.FindSnapPoint(_context.Canvas.Strokes, mousePos);
+            Point effectivePoint = ResolveVectorEndPoint(mousePos, endSnap);
             _currentPoint = effectivePoint;
+
+            double dx = _currentPoint.X - _startPoint.X;
+            double dy = _currentPoint.Y - _startPoint.Y;
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            if (dist >= 8.0) {
+                double angleDeg = ComputeCartesianAngleDeg(dx, -dy);
+                _labelCenter = VectorService.FindOptimalLabelCenterForDimension(_startPoint, _currentPoint, dist, angleDeg, _context.Canvas.Strokes);
+            }
 
             if (_visual != null) {
                 _visual.CurrentPoint = _currentPoint;
+                _visual.LabelCenter = _labelCenter;
                 _visual.SnapEnd = endSnap;
                 _visual.IsActive = true;
+                _visual.IsPlacingLabel = false;
                 _visual.InvalidateVisual();
             }
 
@@ -177,53 +246,97 @@ namespace Trazalibre.Tools {
         }
 
         private void OnCanvasMouseUp(object sender, MouseButtonEventArgs e) {
-            if (!_isDrawing || _context == null) return;
-            _isDrawing = false;
+            if (_state != VectorState.DraggingVector || _context == null) return;
+            if (e.ChangedButton != MouseButton.Left) return;
 
             Point mouseUpPoint = e.GetPosition(_context.Canvas);
             SnapResult endSnap = SnapService.FindSnapPoint(_context.Canvas.Strokes, mouseUpPoint);
-            Point finalEnd;
+            Point finalEnd = ResolveVectorEndPoint(mouseUpPoint, endSnap);
 
+            double fdx = finalEnd.X - _startPoint.X;
+            double fdy = finalEnd.Y - _startPoint.Y;
+            double fdist = Math.Sqrt(fdx * fdx + fdy * fdy);
+            if (fdist < 5.0) {
+                _state = VectorState.Idle;
+                if (_visual != null) {
+                    _visual.Reset();
+                    _visual.InvalidateVisual();
+                }
+                return;
+            }
+
+            double cartesianDy = -(finalEnd.Y - _startPoint.Y);
+            double angleDeg = ComputeCartesianAngleDeg(fdx, cartesianDy);
+
+            _confirmedEndPoint = finalEnd;
+            _confirmedDist = fdist;
+            _confirmedAngleDeg = angleDeg;
+            _labelCenter = VectorService.FindOptimalLabelCenterForDimension(_startPoint, finalEnd, fdist, angleDeg, _context.Canvas.Strokes);
+
+            if (!VectorService.IsDimensionEnabled) {
+                CommitVectorWithLabel(false, _labelCenter);
+            } else if (!VectorService.ManualLabelPlacement) {
+                CommitVectorWithLabel(true, _labelCenter);
+            } else {
+                _state = VectorState.PlacingLabel;
+                _context.Canvas.Focus();
+                if (_visual != null) {
+                    _visual.StartPoint = _startPoint;
+                    _visual.CurrentPoint = _confirmedEndPoint;
+                    _visual.LabelCenter = _labelCenter;
+                    _visual.SnapEnd = endSnap;
+                    _visual.IsActive = true;
+                    _visual.IsPlacingLabel = true;
+                    _visual.InvalidateVisual();
+                }
+            }
+
+            e.Handled = true;
+        }
+
+        private void OnCanvasKeyDown(object sender, KeyEventArgs e) {
+            if (_state != VectorState.PlacingLabel) return;
+
+            if (e.Key == Key.Enter || e.Key == Key.Return || e.Key == Key.Space) {
+                CommitVectorWithLabel(true, _labelCenter);
+                e.Handled = true;
+            } else if (e.Key == Key.Escape) {
+                CommitVectorWithLabel(false, _labelCenter);
+                e.Handled = true;
+            }
+        }
+
+        private Point ResolveVectorEndPoint(Point rawPos, SnapResult endSnap) {
             if (endSnap.IsSnapped) {
-                finalEnd = endSnap.Point;
-            } else if ((Keyboard.Modifiers & ModifierKeys.Alt) != ModifierKeys.Alt) {
-                double dx = mouseUpPoint.X - _startPoint.X;
-                double dy = mouseUpPoint.Y - _startPoint.Y;
+                return endSnap.Point;
+            }
+            if ((Keyboard.Modifiers & ModifierKeys.Alt) != ModifierKeys.Alt) {
+                double dx = rawPos.X - _startPoint.X;
+                double dy = rawPos.Y - _startPoint.Y;
                 double dist = Math.Sqrt(dx * dx + dy * dy);
                 if (dist > 4.0) {
                     double snappedDist = MetricUnits.SnapToMm(dist);
                     double ratio = snappedDist / dist;
-                    finalEnd = new Point(_startPoint.X + dx * ratio, _startPoint.Y + dy * ratio);
-                } else {
-                    finalEnd = mouseUpPoint;
+                    return new Point(_startPoint.X + dx * ratio, _startPoint.Y + dy * ratio);
                 }
-            } else {
-                finalEnd = mouseUpPoint;
             }
+            return rawPos;
+        }
 
-            if (_visual != null) {
-                _visual.Reset();
-                _visual.InvalidateVisual();
-            }
-
-            // Ignorar clics accidentales de menos de 5 píxeles
-            double fdx = finalEnd.X - _startPoint.X;
-            double fdy = finalEnd.Y - _startPoint.Y;
-            double fdist = Math.Sqrt(fdx * fdx + fdy * fdy);
-            if (fdist < 5.0) return;
-
-            // Calcular medidas matemáticas del vector
-            double cartesianDy = -(finalEnd.Y - _startPoint.Y); // Y cartesiano hacia arriba
-            double angleRad = Math.Atan2(cartesianDy, fdx);
+        private static double ComputeCartesianAngleDeg(double dx, double cartesianDy) {
+            double angleRad = Math.Atan2(cartesianDy, dx);
             double angleDeg = angleRad * (180.0 / Math.PI);
-            if (angleDeg < 0) {
-                angleDeg += 360.0;
-            }
+            if (angleDeg < 0) angleDeg += 360.0;
+            return angleDeg;
+        }
+
+        private void CommitVectorWithLabel(bool includeDimension, Point labelCenter) {
+            if (_context == null) return;
 
             double thickness = Math.Max(2.5, _context.CurrentSize);
 
             // 1. Crear trazo del Vector con punta de flecha
-            Point[] vectorPts = VectorService.CreateVectorPoints(_startPoint, finalEnd, thickness);
+            Point[] vectorPts = VectorService.CreateVectorPoints(_startPoint, _confirmedEndPoint, thickness);
             StylusPointCollection points = new StylusPointCollection();
             foreach (Point p in vectorPts) {
                 points.Add(new StylusPoint(p.X, p.Y));
@@ -240,44 +353,53 @@ namespace Trazalibre.Tools {
             Stroke vectorStroke = new Stroke(points, attrs);
             StrokeCollection batch = new StrokeCollection { vectorStroke };
 
-            // 2. Crear trazo de la cota técnica con las medidas permanentes (módulo y ángulo)
-            StrokeCollection dimStrokes = VectorService.CreateDimensionStrokes(
-                _startPoint,
-                finalEnd,
-                fdist,
-                angleDeg,
-                _context.CurrentColor,
-                thickness,
-                true // Forzar creación de medidas
-            );
+            // 2. Crear etiqueta técnica de medidas si corresponde
+            if (includeDimension) {
+                StrokeCollection dimStrokes = VectorService.CreateDimensionStrokesAt(
+                    _startPoint,
+                    _confirmedEndPoint,
+                    labelCenter,
+                    _confirmedDist,
+                    _confirmedAngleDeg,
+                    _context.CurrentColor,
+                    thickness,
+                    true
+                );
 
-            if (dimStrokes != null) {
-                foreach (Stroke ds in dimStrokes) {
-                    batch.Add(ds);
+                if (dimStrokes != null) {
+                    foreach (Stroke ds in dimStrokes) {
+                        batch.Add(ds);
+                    }
                 }
             }
 
             // 3. Estampar en lote atómico para deshacer con un solo Ctrl+Z
             _context.AddStrokes(batch);
 
-            e.Handled = true;
+            _state = VectorState.Idle;
+            if (_visual != null) {
+                _visual.Reset();
+                _visual.InvalidateVisual();
+            }
         }
     }
 
     /// <summary>
     /// Elemento visual interactivo de previsualización para el trazado de vectores con medidas.
-    /// Dibuja la flecha vectorial, dianas magnéticas y la placa de medidas HUD con componentes ΔX y ΔY.
+    /// Dibuja la flecha vectorial, dianas magnéticas, la etiqueta móvil con línea guía y la placa HUD.
     /// </summary>
     public class VectorVisualOverlay : FrameworkElement {
         private readonly VectorTool _tool;
 
         public Point StartPoint { get; set; }
         public Point CurrentPoint { get; set; }
+        public Point LabelCenter { get; set; }
         public Point HoverPoint { get; set; }
         public SnapResult HoverSnap { get; set; }
         public SnapResult SnapStart { get; set; }
         public SnapResult SnapEnd { get; set; }
         public bool IsActive { get; set; }
+        public bool IsPlacingLabel { get; set; }
         public Color Color { get; set; }
         public double Size { get; set; }
 
@@ -291,6 +413,7 @@ namespace Trazalibre.Tools {
 
         public void Reset() {
             IsActive = false;
+            IsPlacingLabel = false;
             HoverSnap = new SnapResult();
             SnapStart = new SnapResult();
             SnapEnd = new SnapResult();
@@ -344,10 +467,23 @@ namespace Trazalibre.Tools {
             double dxMm = MetricUnits.PxToMm(Math.Abs(dx)) * Math.Sign(dx);
             double dyMm = MetricUnits.PxToMm(Math.Abs(cartesianDy)) * Math.Sign(cartesianDy);
 
-            // 5. Placa flotante de medidas (Módulo, Ángulo y Componentes)
+            // 5. En paso PlacingLabel: previsualizar la etiqueta flotante conectada al puntero
+            if (IsPlacingLabel) {
+                VectorService.DrawDimensionPreviewAt(dc, p1, p2, LabelCenter, dist, angleDeg, Color);
+
+                string helpLine1 = string.Format("📏 Módulo: {0:0.0} mm ({1:0.00} cm)  |  ∠ {2:0.0}°  |  ΔX: {3:+0.0;-0.0;0.0}  ΔY: {4:+0.0;-0.0;0.0} mm", mm, cm, angleDeg, dxMm, dyMm);
+                string helpLine2 = "🏷️ Mueve el ratón y haz clic izquierdo para colocar la medida  |  [Enter] Automático  |  [Clic derecho / Esc] Sin medida";
+                DrawHudBox(dc, p1, p2, dist, dx, dy, helpLine1, helpLine2, true);
+                return;
+            }
+
+            // 6. Durante el arrastre del vector: mostrar placa HUD con módulo, ángulo y componentes
             string line1 = string.Format("📏 Módulo: {0:0.0} mm ({1:0.00} cm)  |  ∠ {2:0.0}°", mm, cm, angleDeg);
             string line2 = string.Format("📐 ΔX: {0:+0.0;-0.0;0.0} mm  |  ΔY: {1:+0.0;-0.0;0.0} mm", dxMm, dyMm);
+            DrawHudBox(dc, p1, p2, dist, dx, dy, line1, line2, false);
+        }
 
+        private void DrawHudBox(DrawingContext dc, Point p1, Point p2, double dist, double dx, double dy, string line1, string line2, bool fixedTop) {
             Typeface tf = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
 #pragma warning disable 618
             FormattedText ft1 = new FormattedText(line1, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, tf, 11.0, Brushes.Gold);
@@ -357,14 +493,23 @@ namespace Trazalibre.Tools {
             double boxWidth = Math.Max(ft1.Width, ft2.Width) + 16.0;
             double boxHeight = ft1.Height + ft2.Height + 10.0;
 
-            // Ubicar la placa cerca del punto medio con desplazamiento perpendicular
-            double nx = -dy / dist;
-            double ny = dx / dist;
-            if (ny > 0) { nx = -nx; ny = -ny; }
-            double offset = 26.0;
-
-            Point mid = new Point((p1.X + p2.X) / 2.0 + nx * offset, (p1.Y + p2.Y) / 2.0 + ny * offset);
-            Rect boxRect = new Rect(mid.X - (boxWidth / 2.0), mid.Y - (boxHeight / 2.0), boxWidth, boxHeight);
+            Rect boxRect;
+            if (fixedTop) {
+                double bx = (p1.X + p2.X) / 2.0 - boxWidth / 2.0;
+                double by = Math.Min(p1.Y, p2.Y) - boxHeight - 36.0;
+                if (by < 14.0) {
+                    by = Math.Max(p1.Y, p2.Y) + 36.0;
+                }
+                if (bx < 14.0) bx = 14.0;
+                boxRect = new Rect(bx, by, boxWidth, boxHeight);
+            } else {
+                double nx = -dy / dist;
+                double ny = dx / dist;
+                if (ny > 0) { nx = -nx; ny = -ny; }
+                double offset = 26.0;
+                Point mid = new Point((p1.X + p2.X) / 2.0 + nx * offset, (p1.Y + p2.Y) / 2.0 + ny * offset);
+                boxRect = new Rect(mid.X - (boxWidth / 2.0), mid.Y - (boxHeight / 2.0), boxWidth, boxHeight);
+            }
 
             Brush bgBrush = new SolidColorBrush(Color.FromArgb(235, 18, 22, 28));
             Pen borderPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 215, 0)), 1.2);

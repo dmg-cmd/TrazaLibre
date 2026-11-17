@@ -27,7 +27,25 @@ namespace Trazalibre.Tools {
         public string Icon { get { return "🌐"; } }
 
         public static double SharedAxisHalfLength = 200.0; // 40 mm hacia cada cuadrante (80 mm total)
+        public static bool ShowMillimeterGrid = true;
         public static event EventHandler<double> AxisLengthChanged;
+        public static event EventHandler<bool> MillimeterGridChanged;
+
+        public static void SetMillimeterGrid(bool enabled) {
+            if (ShowMillimeterGrid != enabled) {
+                ShowMillimeterGrid = enabled;
+                EventHandler<bool> handler = MillimeterGridChanged;
+                if (handler != null) {
+                    handler(null, enabled);
+                }
+            }
+        }
+
+        public void InvalidatePreview() {
+            if (_visual != null) {
+                _visual.InvalidateVisual();
+            }
+        }
 
         private IAnnotationContext _context;
         private AxesOverlayVisual _visual;
@@ -92,12 +110,19 @@ namespace Trazalibre.Tools {
                 _context.Canvas.Children.Add(_visual);
             }
 
+            Point workPt = ToolContextMenuHelper.GetInitialWorkPoint(context, _currentPosition);
+            SnapResult initialSnap = SnapService.FindSnapPoint(context.Canvas.Strokes, workPt);
+            _currentPosition = initialSnap.IsSnapped ? initialSnap.Point : workPt;
+
             _visual.Visibility = Visibility.Visible;
             _visual.Color = _context.CurrentColor;
             _visual.Size = _context.CurrentSize;
             _visual.Center = _currentPosition;
             _visual.HalfLength = AxisHalfLength;
+            _visual.InvalidateVisual();
             _isDragging = false;
+
+            context.Canvas.ContextMenu = ToolContextMenuHelper.CreateGeometryContextMenu(context);
 
             if (_mouseDownHandler == null) {
                 _mouseDownHandler = OnCanvasMouseDown;
@@ -112,6 +137,10 @@ namespace Trazalibre.Tools {
 
         public void Deactivate(IAnnotationContext context) {
             DetachEvents();
+
+            if (context != null && context.Canvas != null) {
+                context.Canvas.ContextMenu = null;
+            }
 
             if (_visual != null && _context != null && _context.Canvas != null) {
                 _context.Canvas.Children.Remove(_visual);
@@ -290,6 +319,11 @@ namespace Trazalibre.Tools {
                 IsHighlighter = false
             };
 
+            // 0. CUADRÍCULA MILIMETRADA FINA PARA GRÁFICOS (1 mm = 5 px, 5 mm = 25 px, 10 mm = 50 px)
+            if (ShowMillimeterGrid) {
+                AddMillimeterGridStrokes(strokes, origin, halfLength, color);
+            }
+
             // 1. PUNTO EN EL ORIGEN (0, 0) - Elemento clave para imantación con SnapService
             StylusPointCollection originPts = new StylusPointCollection();
             double r = Math.Max(3.5, mainThick * 1.3);
@@ -383,6 +417,59 @@ namespace Trazalibre.Tools {
             return strokes;
         }
 
+        /// <summary>
+        /// Genera líneas finas tipo papel milimetrado en los cuatro cuadrantes del sistema de coordenadas:
+        /// cada 1 mm (5 px) ultrafina, cada 5 mm (25 px) intermedia y cada 10 mm (50 px) principal.
+        /// </summary>
+        private static void AddMillimeterGridStrokes(StrokeCollection strokes, Point origin, double halfLength, Color color) {
+            double mmStep = MetricUnits.PixelsPerMm; // 5 px = 1 mm
+            int maxMm = (int)Math.Floor(halfLength / mmStep);
+
+            DrawingAttributes attrs1mm = new DrawingAttributes {
+                Color = Color.FromArgb(40, color.R, color.G, color.B),
+                Width = 0.45,
+                Height = 0.45,
+                FitToCurve = false,
+                IsHighlighter = false
+            };
+
+            DrawingAttributes attrs5mm = new DrawingAttributes {
+                Color = Color.FromArgb(75, color.R, color.G, color.B),
+                Width = 0.7,
+                Height = 0.7,
+                FitToCurve = false,
+                IsHighlighter = false
+            };
+
+            DrawingAttributes attrs10mm = new DrawingAttributes {
+                Color = Color.FromArgb(115, color.R, color.G, color.B),
+                Width = 1.0,
+                Height = 1.0,
+                FitToCurve = false,
+                IsHighlighter = false
+            };
+
+            for (int i = 1; i <= maxMm; i++) {
+                double offset = i * mmStep;
+                DrawingAttributes lineAttrs = (i % 10 == 0) ? attrs10mm : ((i % 5 == 0) ? attrs5mm : attrs1mm);
+
+                // Líneas verticales (+X y -X)
+                strokes.Add(CreateLineStroke(new Point(origin.X + offset, origin.Y - halfLength), new Point(origin.X + offset, origin.Y + halfLength), lineAttrs));
+                strokes.Add(CreateLineStroke(new Point(origin.X - offset, origin.Y - halfLength), new Point(origin.X - offset, origin.Y + halfLength), lineAttrs));
+
+                // Líneas horizontales (+Y y -Y)
+                strokes.Add(CreateLineStroke(new Point(origin.X - halfLength, origin.Y - offset), new Point(origin.X + halfLength, origin.Y - offset), lineAttrs));
+                strokes.Add(CreateLineStroke(new Point(origin.X - halfLength, origin.Y + offset), new Point(origin.X + halfLength, origin.Y + offset), lineAttrs));
+            }
+        }
+
+        private static Stroke CreateLineStroke(Point p1, Point p2, DrawingAttributes attrs) {
+            StylusPointCollection pts = new StylusPointCollection();
+            pts.Add(new StylusPoint(p1.X, p1.Y));
+            pts.Add(new StylusPoint(p2.X, p2.Y));
+            return new Stroke(pts, attrs);
+        }
+
         private static void AddTextStroke(StrokeCollection strokes, string text, Point location, Color color, double fontSize, double thickness) {
             Typeface typeface = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
 #pragma warning disable 618
@@ -452,6 +539,28 @@ namespace Trazalibre.Tools {
             double l = HalfLength;
             double mm = MetricUnits.PxToMm(l);
             double cm = mm / 10.0;
+
+            // Cuadrícula milimetrada de previsualización (1 mm, 5 mm y 10 mm)
+            if (AxesTool.ShowMillimeterGrid) {
+                Pen pen1mm = new Pen(new SolidColorBrush(Color.FromArgb(40, Color.R, Color.G, Color.B)), 0.45);
+                Pen pen5mm = new Pen(new SolidColorBrush(Color.FromArgb(75, Color.R, Color.G, Color.B)), 0.7);
+                Pen pen10mm = new Pen(new SolidColorBrush(Color.FromArgb(115, Color.R, Color.G, Color.B)), 1.0);
+                pen1mm.Freeze();
+                pen5mm.Freeze();
+                pen10mm.Freeze();
+
+                double mmStep = MetricUnits.PixelsPerMm;
+                int maxMm = (int)Math.Floor(l / mmStep);
+                for (int i = 1; i <= maxMm; i++) {
+                    double offset = i * mmStep;
+                    Pen gridPen = (i % 10 == 0) ? pen10mm : ((i % 5 == 0) ? pen5mm : pen1mm);
+
+                    dc.DrawLine(gridPen, new Point(c.X + offset, c.Y - l), new Point(c.X + offset, c.Y + l));
+                    dc.DrawLine(gridPen, new Point(c.X - offset, c.Y - l), new Point(c.X - offset, c.Y + l));
+                    dc.DrawLine(gridPen, new Point(c.X - l, c.Y - offset), new Point(c.X + l, c.Y - offset));
+                    dc.DrawLine(gridPen, new Point(c.X - l, c.Y + offset), new Point(c.X + l, c.Y + offset));
+                }
+            }
 
             // Ejes de previsualización
             Brush axisBrush = new SolidColorBrush(Color.FromArgb(200, Color.R, Color.G, Color.B));

@@ -23,6 +23,9 @@ namespace Trazalibre.Core {
 
         public void Initialize(IAnnotationContext context) {
             _context = context;
+            if (_context != null) {
+                _context.Registry = this;
+            }
         }
 
         public void RegisterTool(ITool tool) {

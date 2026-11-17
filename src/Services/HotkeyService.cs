@@ -63,6 +63,14 @@ namespace Trazalibre.Services {
                 }
             }
 
+            // Si VectorTool está ubicando manualmente la etiqueta de medidas, permitirle procesar Enter, Espacio y Escape
+            Trazalibre.Tools.VectorTool vectorTool = _registry.ActiveTool as Trazalibre.Tools.VectorTool;
+            if (vectorTool != null && vectorTool.IsPlacingLabel) {
+                if (e.Key == Key.Escape || e.Key == Key.Enter || e.Key == Key.Return || e.Key == Key.Space) {
+                    return;
+                }
+            }
+
             // Tecla ESC: Salida inmediata al modo Ratón
             if (e.Key == Key.Escape) {
                 _registry.SelectTool("mouse");
@@ -107,7 +115,7 @@ namespace Trazalibre.Services {
                 _registry.SelectTool("geom_axes");
                 e.Handled = true;
             } else if (e.Key == Key.J) {
-                _registry.SelectTool("shape_protractor");
+                _registry.SelectTool("geom_protractor");
                 e.Handled = true;
             } else if (e.Key == Key.M) {
                 _registry.SelectTool("geom_ruler");
@@ -159,6 +167,18 @@ namespace Trazalibre.Services {
                 e.Handled = true;
             } else if (e.Key == Key.S && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) {
                 _context.SaveScreenshot();
+                e.Handled = true;
+            } else if (e.Key == Key.D && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) {
+                _context.MergeIntoDocument();
+                e.Handled = true;
+            } else if ((e.Key == Key.OemPlus || e.Key == Key.Add) && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) {
+                _context.SetZoom(_context.ZoomLevel + 0.25);
+                e.Handled = true;
+            } else if ((e.Key == Key.OemMinus || e.Key == Key.Subtract) && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) {
+                _context.SetZoom(_context.ZoomLevel - 0.25);
+                e.Handled = true;
+            } else if ((e.Key == Key.D0 || e.Key == Key.NumPad0) && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control) {
+                _context.ResetZoom();
                 e.Handled = true;
             }
         }

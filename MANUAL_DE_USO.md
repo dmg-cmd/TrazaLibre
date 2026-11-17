@@ -1,5 +1,5 @@
-# Manual de Uso Oficial de Trazalibre (`v1.3.1`)
-*Aplicación de Anotación en Pantalla, Pizarra Interactiva y Dibujo Técnico CAD — Versión actual: **v1.3.1***
+# Manual de Uso Oficial de Trazalibre (`v1.4.0`)
+*Aplicación de Anotación en Pantalla, Pizarra Interactiva y Dibujo Técnico CAD — Versión actual: **v1.4.0***
 
 ---
 
@@ -49,7 +49,7 @@
 
 ### Paso 1: Abrir la aplicación
 - Haz doble clic sobre el archivo ejecutable `bin\Trazalibre.exe` (o compila automáticamente haciendo doble clic en `build.bat`).
-- Gracias al sistema de **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, aparecerá de inmediato la **Pantalla de Inicio** con el icono oficial, la versión (`v1.3.1`), una barra de progreso fluida y una **carga progresiva en 4 etapas animadas** (*"⏳ Iniciando Trazalibre, por favor espere..."*, carga de instrumentos CAD, preparación del lienzo multimonitor y configuración de barra/atajos).
+- Gracias al sistema de **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, aparecerá de inmediato la **Pantalla de Inicio** con el icono oficial, la versión (`v1.4.0`), una barra de progreso fluida y una **carga progresiva en 4 etapas animadas** (*"⏳ Iniciando Trazalibre, por favor espere..."*, carga de instrumentos CAD, preparación del lienzo multimonitor y configuración de barra/atajos).
 - Acto seguido, se abrirá la barra de herramientas flotante en la esquina superior derecha de la pantalla con el indicador verde **`● Activo`** en su encabezado.
 - Puedes hacer clic sobre cualquier espacio libre de esa barra para arrastrarla y acomodarla donde te resulte más cómoda, o cambiar su aspecto visual entre **🌙 Oscuro**, **☀️ Claro** y **🔷 Azul CAD**.
 
@@ -101,7 +101,7 @@ Al iniciar Trazalibre, tras la pantalla de bienvenida de arranque instantáneo (
 - **Desplazamiento:** Puedes hacer clic sobre cualquier sector libre de la barra y arrastrarla a la posición de la pantalla que te resulte más cómoda.
 - **Botón de Cierre (✕):** Ubicado en la esquina superior derecha del encabezado, cierra de inmediato la aplicación y libera todos los recursos del sistema.
 - **Persistencia Visual:** La barra permanece siempre visible por encima de cualquier ventana (`Topmost`), permitiéndote cambiar de herramienta en cualquier momento.
-- **Acceso Rápido Técnico:** Incorpora botones dedicados para **Ejes Coordenados (0, 0)** con controles de incremento `[ ➖ ]` / `[ ➕ ]`, botón de **Vector con Medidas**, conmutadores de Modo Vector (`V`) y Cota Técnica (`D`), además de los menús desplegables de Formas y Geometría.
+- **Acceso Rápido Técnico:** Incorpora botones dedicados para **Ejes Coordenados (0, 0)** con controles de incremento `[ ➖ ]` / `[ ➕ ]` e interruptor **`📏 Grilla Milimetrada: ON/OFF`**, botón de **Vector con Medidas**, conmutadores de Modo Vector (`V`) y Cota Técnica (`D`), controles de **Zoom del Lienzo** (`🔍−`, `🔎 Zoom: %`, `🔍+`) además de los menús desplegables de Formas y Geometría.
 - **Sección Tipográfica (`🔤 Fuente`):** Permite elegir en cualquier momento la familia tipográfica (`Segoe UI`, `Arial`, `Calibri`, `Consolas`, `Verdana`, `Times New Roman`, `Georgia`, `Comic Sans MS`), regular el tamaño de letra entre **`10 pt` y `72 pt`** mediante los botones **`A-`** y **`A+`** (en pasos de 2 pt), y activar o desactivar los estilos **Negrita (`B`)** y **Cursiva (`I`)**. Estos ajustes se sincronizan en tiempo real con la mini-barra flotante de los cuadros de texto.
 
 ---
@@ -172,10 +172,21 @@ Desplegando el menú **`🔷 Formas:`** o usando sus atajos directos:
 
 ## 7. Instrumentos de Dibujo Técnico y Geometría
 
-Desplegando el menú **`📐 Geometría:`** accedes a una suite completa de instrumentos técnicos graduados con medición en tiempo real:
+Desplegando el menú **`📐 Geometría:`** o haciendo **clic derecho sobre el lienzo** accedes a una suite completa de instrumentos técnicos graduados con medición en tiempo real:
+
+### 🖱️ Menú Contextual Rápido (Clic Derecho en el Lienzo)
+- Para evitar perder tiempo o perder la ubicación exacta mientras trabajas sobre una figura, el **clic derecho** abre un menú contextual dinámico tanto en los instrumentos de geometría (**Regla**, **Escuadra 45°**, **Escuadra 30°/60°**, **Transportador 360°**, **Compás**, **Ejes Coordenados**), como en **Vector con Medidas**, **Formas** y herramientas de trazado libre (**Lápiz**, **Resaltador**, **Borrador**).
+- **Cambio directo conservando el punto de trabajo:** En el primer nivel aparece la sección **`📐 Instrumentos de Geometría`** con acceso en un clic a **`📏 Regla Graduada [M]`**, **`📐 Escuadra 45°`**, **`📐 Escuadra 30° / 60° (Cartabón)`**, **`📐 Transportador 360° [J]`**, **`🧭 Compás de Precisión [U]`**, **`🌐 Ejes Coordenados (0, 0) [G]`**, **`🏹 Vector con Medidas [V]`** y **`📏 Línea Simple [L]`**. Al seleccionar otro instrumento, este se ubica automáticamente en la coordenada exacta donde abriste el menú (con soporte de imantación magnética `SnapService`).
+- **Ajustes rápidos del instrumento activo:**
+  - Conmutar **`🏹 Punta de Flecha (Modo Vector) [V]`** y **`🏷️ Mostrar Cota (Módulo / Ángulo) [D]`** en herramientas lineales o angulares.
+  - Submenú **`🔄 Ángulo Rápido`** (`0°`, `30°`, `45°`, `60°`, `90°`, `135°`, `180°`, `270°`) en Regla, Escuadras y Transportador.
+  - Submenú **`🔄 Amplitud de Arco`** (`360°`, `270°`, `180°`, `90°`, `60°`, `45°`) en el Compás.
+  - Alternar **`📏 Grilla Milimetrada en Ejes`** e incrementar o reducir el tamaño (`+10 mm` / `-10 mm`) en los Ejes Coordenados.
+  - Acceso directo a **✏️ Grosor de trazo**, **🎨 Color**, **✏️ Cambiar a Lápiz Libre `[P]`** y **↩️ Deshacer `[Ctrl+Z]`**.
 
 ### 🌐 Ejes de Coordenadas Cartesianos (`G`)
 - Muestra un sistema completo de ejes coordenados ortogonales ($X$ horizontal e $Y$ vertical).
+- **Grilla Milimetrada Integrada:** Con el botón **`📏 Grilla Milimetrada: ON/OFF`** de la barra (o desde el menú contextual de los ejes) puedes activar o desactivar una cuadrícula fina de papel milimetrado en los cuatro cuadrantes (líneas cada **1 mm**, **5 mm** y **10 mm**).
 - **Cómo incrementarlos:**
   1. **Arrastrando con el ratón:** Haz clic en el punto donde deseas el origen $(0,0)$ y, sin soltar, arrastra hacia afuera. Los ejes y su graduación se irán incrementando en tiempo real en los 4 cuadrantes. Al soltar, se fijan con ese tamaño.
   2. **Desde la barra de herramientas:** Pulsa los botones dedicados **`[ ➕ ]`** y **`[ ➖ ]`** situados bajo el botón de ejes para incrementar o reducir la longitud en pasos de $+10\text{ mm}$ (+1 cm).
@@ -331,6 +342,15 @@ Trazalibre incluye un capturador interactivo de alta fidelidad:
   - La imagen se copia **automáticamente al portapapeles de Windows**, lista para pegarla con `Ctrl + V` en WhatsApp, Telegram, Word, Paint o correo electrónico.
 - Si decides no capturar nada, presiona la tecla **`ESC`** para salir sin guardar.
 
+### 📥 Volcar Dibujo al Documento / Aplicación (`Ctrl + D`)
+¿Tienes un procesador de textos abierto (como **LibreOffice Writer**, **Microsoft Word** o **Google Docs**), hiciste un diagrama o anotación encima de la hoja y quieres insertarlo directamente en el documento?
+- **Acceso:** Presiona **`Ctrl + D`**, haz clic en el botón **`📥 Volcar a App [Ctrl+D]`** de la barra flotante o elige **`📥 Volcar Dibujo al Documento [Ctrl+D]`** en el menú contextual.
+- **Funcionamiento automático:**
+  1. Recorta únicamente tus trazos en su tamaño exacto con un margen limpio sobre fondo blanco (ajustando los trazos blancos puros a tono oscuro para que se vean en la hoja).
+  2. Copia el gráfico al portapapeles de Windows y guarda una copia de respaldo PNG en `Mis Imágenes\Trazalibre\Volcado_Documento_YYYYMMDD_HHMMSS.png`.
+  3. Archiva los trazos en el historial para que puedas recuperarlos con `Ctrl + Z`, limpia el lienzo y cambia automáticamente a **Modo Ratón**.
+  4. Enfoca la ventana del documento situado debajo del dibujo y envía `Ctrl + V` para incrustar el dibujo directamente en tu hoja de trabajo.
+
 ---
 
 ## 14. Tabla Completa de Atajos de Teclado
@@ -343,6 +363,12 @@ Trazalibre incluye un capturador interactivo de alta fidelidad:
 | **`Ctrl + Z`** | **Deshacer** el último trazo o elemento dibujado. |
 | **`C`** | **Limpiar** la totalidad de los trazos del lienzo. |
 | **`Ctrl + S`** | Activar el selector interactivo de **Captura de Sector**. |
+| **`Ctrl + D`** | **📥 Volcar Dibujo al Documento / Aplicación:** Recorta los trazos sobre fondo blanco limpio, los pega directamente en la aplicación subyacente y limpia el lienzo (recuperable con `Ctrl + Z`). |
+| **`Ctrl + +` / `Ctrl + Rueda ↑`** | **Acercar Zoom del lienzo** (+25 %, hasta 400 %) manteniendo la escala 1:1. |
+| **`Ctrl + -` / `Ctrl + Rueda ↓`** | **Alejar Zoom del lienzo** (-25 %, hasta 50 %). |
+| **`Ctrl + 0`** | **Restablecer Zoom al 100 %** y centrar el lienzo. |
+| **Botón central / `Espacio + Arrastrar`** | **Desplazar (Pan)** el lienzo cuando está ampliado. |
+| **Clic Derecho** | Abrir el **Menú Contextual Rápido** con la Regla y todos los Instrumentos de Geometría sin perder la posición actual. |
 
 ### 🛠️ Selección de Herramientas
 | Atajo | Herramienta |

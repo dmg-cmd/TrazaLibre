@@ -277,7 +277,7 @@ namespace Trazalibre.UI {
             string[] geometryIds = new string[] {
                 "geom_axes",
                 "shape_vector",
-                "shape_protractor",
+                "geom_protractor",
                 "geom_ruler",
                 "geom_triangle45",
                 "geom_triangle30",
@@ -390,6 +390,45 @@ namespace Trazalibre.UI {
             axesSizeGrid.Children.Add(btnAxesInc);
 
             mainStack.Children.Add(axesSizeGrid);
+
+            // Botón interruptor de cuadrícula milimetrada fina en los ejes coordenados
+            Button btnMillimeterGrid = new Button {
+                Content = AxesTool.ShowMillimeterGrid ? "📏 Grilla Milimetrada: ON" : "📏 Grilla Milimetrada: OFF",
+                Foreground = AxesTool.ShowMillimeterGrid ? Brushes.LightCyan : Brushes.LightGray,
+                Background = AxesTool.ShowMillimeterGrid
+                    ? new SolidColorBrush(Color.FromArgb(90, 0, 162, 255))
+                    : new SolidColorBrush(Color.FromArgb(140, 50, 53, 59)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(100, 0, 162, 255)),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 3, 6, 3),
+                Margin = new Thickness(0, 0, 0, 4),
+                FontSize = 10.0,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand,
+                ToolTip = "Activa o desactiva las líneas finas tipo milimetradas en las coordenadas para gráficos"
+            };
+
+            Action syncGridButton = () => {
+                bool on = AxesTool.ShowMillimeterGrid;
+                btnMillimeterGrid.Content = on ? "📏 Grilla Milimetrada: ON" : "📏 Grilla Milimetrada: OFF";
+                btnMillimeterGrid.Foreground = on ? Brushes.LightCyan : Brushes.LightGray;
+                btnMillimeterGrid.Background = on
+                    ? new SolidColorBrush(Color.FromArgb(90, 0, 162, 255))
+                    : new SolidColorBrush(Color.FromArgb(140, 50, 53, 59));
+            };
+
+            btnMillimeterGrid.Click += (s, e) => {
+                AxesTool.SetMillimeterGrid(!AxesTool.ShowMillimeterGrid);
+                AxesTool tool = FindTool("geom_axes") as AxesTool;
+                if (tool != null) tool.InvalidatePreview();
+                syncGridButton();
+            };
+
+            AxesTool.MillimeterGridChanged += (s, enabled) => {
+                Dispatcher.Invoke(new Action(syncGridButton));
+            };
+
+            mainStack.Children.Add(btnMillimeterGrid);
 
             // Botón dedicado de Vector (2 Puntos) con Medidas [V]
             _vectorButton = new Button {
@@ -835,6 +874,72 @@ namespace Trazalibre.UI {
 
             mainStack.Children.Add(CreateSeparator());
 
+            // 6b. Control de Zoom del Lienzo (mantiene relación 1:1 de lo dibujado y escrito)
+            Grid zoomGrid = new Grid { Margin = new Thickness(0, 2, 0, 4) };
+            zoomGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            zoomGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            zoomGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            Button btnZoomOut = new Button {
+                Content = "🔍−",
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(140, 50, 53, 59)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                Width = 34,
+                Height = 24,
+                Cursor = Cursors.Hand,
+                ToolTip = "Alejar vista del lienzo [Ctrl + -]"
+            };
+
+            Button btnZoomReset = new Button {
+                Content = string.Format("🔎 Zoom: {0:0}%", _context.ZoomLevel * 100.0),
+                Foreground = Brushes.LightCyan,
+                Background = new SolidColorBrush(Color.FromArgb(120, 40, 44, 52)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 0, 162, 255)),
+                BorderThickness = new Thickness(1),
+                Height = 24,
+                Margin = new Thickness(4, 0, 4, 0),
+                FontSize = 10.5,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand,
+                ToolTip = "Clic para restablecer zoom al 100% [Ctrl + 0] | Ctrl + Rueda para zoom | Botón central o Espacio+Arrastrar para mover"
+            };
+
+            Button btnZoomIn = new Button {
+                Content = "🔍+",
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(140, 50, 53, 59)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                Width = 34,
+                Height = 24,
+                Cursor = Cursors.Hand,
+                ToolTip = "Acercar vista del lienzo [Ctrl + +]"
+            };
+
+            Action<double> updateZoomLabel = (z) => {
+                btnZoomReset.Content = string.Format("🔎 Zoom: {0:0}%", z * 100.0);
+                btnZoomReset.Foreground = Math.Abs(z - 1.0) > 0.01 ? Brushes.Gold : Brushes.LightCyan;
+            };
+
+            btnZoomOut.Click += (s, e) => _context.SetZoom(_context.ZoomLevel - 0.25);
+            btnZoomIn.Click += (s, e) => _context.SetZoom(_context.ZoomLevel + 0.25);
+            btnZoomReset.Click += (s, e) => _context.ResetZoom();
+
+            _context.ZoomChanged += (s, z) => {
+                Dispatcher.Invoke(new Action(() => updateZoomLabel(z)));
+            };
+
+            Grid.SetColumn(btnZoomOut, 0);
+            Grid.SetColumn(btnZoomReset, 1);
+            Grid.SetColumn(btnZoomIn, 2);
+
+            zoomGrid.Children.Add(btnZoomOut);
+            zoomGrid.Children.Add(btnZoomReset);
+            zoomGrid.Children.Add(btnZoomIn);
+            mainStack.Children.Add(zoomGrid);
+
             // 7. Acciones Rápidas
             WrapPanel actionsPanel = new WrapPanel { Margin = new Thickness(0, 4, 0, 0) };
             actionsPanel.Children.Add(CreateButton("↩️ Deshacer [Ctrl+Z]", () => _context.Undo()));
@@ -846,6 +951,9 @@ namespace Trazalibre.UI {
                         "Captura de Sector", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }));
+            Button mergeBtn = CreateButton("📥 Volcar a App [Ctrl+D]", () => _context.MergeIntoDocument());
+            mergeBtn.ToolTip = "Vuelca el dibujo actual directamente al documento o aplicación debajo [Ctrl+D]";
+            actionsPanel.Children.Add(mergeBtn);
             mainStack.Children.Add(actionsPanel);
 
             rootBorder.Child = mainStack;
@@ -961,7 +1069,7 @@ namespace Trazalibre.UI {
                 case "shape_line": return " [L]";
                 case "shape_vector": return " [V]";
                 case "geom_axes": return " [G]";
-                case "shape_protractor": return " [J]";
+                case "geom_protractor": return " [J]";
                 case "geom_ruler": return " [M]";
                 case "geom_compass": return " [U]";
                 case "shape_callout_rect": return " [B]";
@@ -981,7 +1089,7 @@ namespace Trazalibre.UI {
         }
 
         private void HighlightActiveTool(string activeId) {
-            bool isGeometry = activeId.StartsWith("geom_", StringComparison.OrdinalIgnoreCase) || activeId.Equals("shape_protractor", StringComparison.OrdinalIgnoreCase);
+            bool isGeometry = activeId.StartsWith("geom_", StringComparison.OrdinalIgnoreCase);
             bool isShape = !isGeometry && (activeId.StartsWith("shape_", StringComparison.OrdinalIgnoreCase) || activeId.Equals("tool_instruction", StringComparison.OrdinalIgnoreCase));
             bool isStamp = activeId.StartsWith("stamp_", StringComparison.OrdinalIgnoreCase);
 
