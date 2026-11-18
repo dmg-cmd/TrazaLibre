@@ -15,6 +15,7 @@ namespace Trazalibre.Services {
     public static class VectorService {
         private static bool _isVectorMode = false;
         private static bool _isDimensionEnabled = true;
+        private static bool _showRectangularProjections = true;
         public static bool ManualLabelPlacement = true;
 
         /// <summary>
@@ -43,8 +44,22 @@ namespace Trazalibre.Services {
             }
         }
 
+        /// <summary>
+        /// Indica si se marcan las proyecciones y componentes rectangulares sobre el eje X y el eje Y.
+        /// </summary>
+        public static bool ShowRectangularProjections {
+            get { return _showRectangularProjections; }
+            set {
+                if (_showRectangularProjections != value) {
+                    _showRectangularProjections = value;
+                    OnRectangularProjectionsChanged();
+                }
+            }
+        }
+
         public static event EventHandler VectorModeChanged;
         public static event EventHandler DimensionModeChanged;
+        public static event EventHandler RectangularProjectionsChanged;
 
         private static void OnVectorModeChanged() {
             EventHandler handler = VectorModeChanged;
@@ -55,6 +70,13 @@ namespace Trazalibre.Services {
 
         private static void OnDimensionModeChanged() {
             EventHandler handler = DimensionModeChanged;
+            if (handler != null) {
+                handler(null, EventArgs.Empty);
+            }
+        }
+
+        private static void OnRectangularProjectionsChanged() {
+            EventHandler handler = RectangularProjectionsChanged;
             if (handler != null) {
                 handler(null, EventArgs.Empty);
             }
@@ -74,6 +96,14 @@ namespace Trazalibre.Services {
         public static bool ToggleDimensionMode() {
             IsDimensionEnabled = !IsDimensionEnabled;
             return IsDimensionEnabled;
+        }
+
+        /// <summary>
+        /// Alterna el marcado de componentes y proyecciones rectangulares sobre los ejes X e Y.
+        /// </summary>
+        public static bool ToggleRectangularProjections() {
+            ShowRectangularProjections = !ShowRectangularProjections;
+            return ShowRectangularProjections;
         }
 
         /// <summary>
@@ -169,23 +199,37 @@ namespace Trazalibre.Services {
         }
 
         /// <summary>
-        /// Construye el texto formateado de una cota técnica (módulo en mm y ángulo).
+        /// Construye el texto formateado de una cota técnica (módulo en mm y ángulo,
+        /// e incluye la conversión a componentes rectangulares X e Y si está activa).
         /// </summary>
         public static string GetDimensionText(double lengthPixels, double angleDeg) {
             double mm = MetricUnits.PxToMm(lengthPixels);
+            if (ShowRectangularProjections) {
+                double rad = angleDeg * Math.PI / 180.0;
+                double xMm = mm * Math.Cos(rad);
+                double yMm = mm * Math.Sin(rad);
+                return string.Format("{0:0.#} mm ∠ {1:0.#}°  ➔  (X: {2:+0.#;-0.#;0}; Y: {3:+0.#;-0.#;0} mm)", mm, angleDeg, xMm, yMm);
+            }
             return string.Format("{0:0.#} mm  ∠ {1:0.#}°", mm, angleDeg);
+        }
+
+        /// <summary>
+        /// Mide el texto y las dimensiones de la placa de una etiqueta con tamaño y color configurables.
+        /// </summary>
+        private static void MeasureLabelBox(string text, double fontSize, Brush textBrush, out FormattedText ft, out double boxWidth, out double boxHeight) {
+            Typeface tf = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+#pragma warning disable 618
+            ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, tf, fontSize, textBrush);
+#pragma warning restore 618
+            boxWidth = ft.Width + 16.0;
+            boxHeight = ft.Height + 10.0;
         }
 
         /// <summary>
         /// Mide el texto y las dimensiones de la placa de la etiqueta técnica.
         /// </summary>
         public static void MeasureDimensionBox(string text, out FormattedText ft, out double boxWidth, out double boxHeight) {
-            Typeface tf = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
-#pragma warning disable 618
-            ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, tf, 13.0, Brushes.Gold);
-#pragma warning restore 618
-            boxWidth = ft.Width + 16.0;
-            boxHeight = ft.Height + 10.0;
+            MeasureLabelBox(text, 13.0, Brushes.Gold, out ft, out boxWidth, out boxHeight);
         }
 
         /// <summary>
@@ -403,7 +447,224 @@ namespace Trazalibre.Services {
                 strokes.Add(new Stroke(dotPts, dotAttrs));
             }
 
-            // 2. Placa de fondo oscura protectora (oculta cuadrículas o trazos detrás del texto)
+            // 2-4. Placa oscura protectora, marco redondeado y texto vectorizado
+            AddRoundedBoxAndTextStrokes(strokes, labelCenter, ft, boxWidth, boxHeight, color, Colors.Gold);
+
+            return strokes;
+        }
+
+        /// <summary>
+        /// Dibuja en tiempo real las proyecciones ortogonales, los vectores componentes
+        /// y los valores rectangulares (X, Y) sobre el eje X y el eje Y a partir del vector polar.
+        /// </summary>
+        public static void DrawRectangularProjectionsPreview(DrawingContext dc, Point start, Point end) {
+            if (!ShowRectangularProjections) return;
+
+            double dx = end.X - start.X;
+            double dy = end.Y - start.Y;
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            if (dist < 8.0) return;
+
+            Point projX = new Point(end.X, start.Y);
+            Point projY = new Point(start.X, end.Y);
+
+            Color xColor = Color.FromRgb(0, 220, 255);
+            Color yColor = Color.FromRgb(60, 235, 140);
+            Brush xBrush = new SolidColorBrush(xColor);
+            Brush yBrush = new SolidColorBrush(yColor);
+
+            // 1. Líneas punteadas de proyección ortogonal desde la punta del vector hasta los ejes X e Y
+            if (Math.Abs(dy) >= 3.0) {
+                Pen projXPen = new Pen(new SolidColorBrush(Color.FromArgb(200, xColor.R, xColor.G, xColor.B)), 1.4);
+                projXPen.DashStyle = new DashStyle(new double[] { 4.0, 3.0 }, 0.0);
+                dc.DrawLine(projXPen, end, projX);
+            }
+            if (Math.Abs(dx) >= 3.0) {
+                Pen projYPen = new Pen(new SolidColorBrush(Color.FromArgb(200, yColor.R, yColor.G, yColor.B)), 1.4);
+                projYPen.DashStyle = new DashStyle(new double[] { 4.0, 3.0 }, 0.0);
+                dc.DrawLine(projYPen, end, projY);
+            }
+
+            // 2. Vector componente Vx y marca sobre el eje X
+            if (Math.Abs(dx) >= 3.0) {
+                Pen xAxisPen = new Pen(xBrush, 2.4);
+                dc.DrawLine(xAxisPen, start, projX);
+                if (Math.Abs(dx) >= 12.0) {
+                    DrawArrowHead(dc, start, projX, xBrush, 1.8);
+                }
+            }
+            dc.DrawLine(new Pen(xBrush, 1.8), new Point(projX.X, projX.Y - 7.0), new Point(projX.X, projX.Y + 7.0));
+            dc.DrawEllipse(xBrush, new Pen(Brushes.White, 1.0), projX, 4.0, 4.0);
+
+            // 3. Vector componente Vy y marca sobre el eje Y
+            if (Math.Abs(dy) >= 3.0) {
+                Pen yAxisPen = new Pen(yBrush, 2.4);
+                dc.DrawLine(yAxisPen, start, projY);
+                if (Math.Abs(dy) >= 12.0) {
+                    DrawArrowHead(dc, start, projY, yBrush, 1.8);
+                }
+            }
+            dc.DrawLine(new Pen(yBrush, 1.8), new Point(projY.X - 7.0, projY.Y), new Point(projY.X + 7.0, projY.Y));
+            dc.DrawEllipse(yBrush, new Pen(Brushes.White, 1.0), projY, 4.0, 4.0);
+
+            // 4. Etiquetas con las coordenadas rectangulares X e Y en mm y cm sobre cada eje
+            double xMm = MetricUnits.PxToMm(dx);
+            double yMm = MetricUnits.PxToMm(-dy);
+            string textX = string.Format("X = {0:+0.#;-0.#;0} mm ({1:+0.0#;-0.0#;0} cm)", xMm, xMm / 10.0);
+            string textY = string.Format("Y = {0:+0.#;-0.#;0} mm ({1:+0.0#;-0.0#;0} cm)", yMm, yMm / 10.0);
+
+            FormattedText ftX;
+            double boxWX, boxHX;
+            MeasureLabelBox(textX, 11.5, xBrush, out ftX, out boxWX, out boxHX);
+
+            FormattedText ftY;
+            double boxWY, boxHY;
+            MeasureLabelBox(textY, 11.5, yBrush, out ftY, out boxWY, out boxHY);
+
+            Point labelXCenter;
+            Point labelYCenter;
+            ComputeAxisLabelCenters(start, end, boxWX, boxHX, boxWY, boxHY, out labelXCenter, out labelYCenter);
+
+            DrawLabelBoxPreview(dc, labelXCenter, ftX, boxWX, boxHX, xColor);
+            DrawLabelBoxPreview(dc, labelYCenter, ftY, boxWY, boxHY, yColor);
+        }
+
+        /// <summary>
+        /// Genera los trazos permanentes en el lienzo para marcar la conversión polar a rectangular:
+        /// líneas punteadas de proyección, vectores componentes Vx y Vy, marcas y etiquetas en eje X y eje Y.
+        /// </summary>
+        public static StrokeCollection CreateRectangularProjectionStrokes(Point start, Point end, double thickness) {
+            StrokeCollection strokes = new StrokeCollection();
+            if (!ShowRectangularProjections) return strokes;
+
+            double dx = end.X - start.X;
+            double dy = end.Y - start.Y;
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            if (dist < 8.0) return strokes;
+
+            Point projX = new Point(end.X, start.Y);
+            Point projY = new Point(start.X, end.Y);
+
+            Color xColor = Color.FromRgb(0, 220, 255);
+            Color yColor = Color.FromRgb(60, 235, 140);
+            double compThick = Math.Max(1.8, Math.Min(3.5, thickness * 0.75));
+
+            // 1. Líneas punteadas de proyección ortogonal hasta los ejes
+            if (Math.Abs(dy) >= 3.0) {
+                AddDashedSegmentStrokes(strokes, end, projX, Color.FromArgb(200, xColor.R, xColor.G, xColor.B), 1.3);
+            }
+            if (Math.Abs(dx) >= 3.0) {
+                AddDashedSegmentStrokes(strokes, end, projY, Color.FromArgb(200, yColor.R, yColor.G, yColor.B), 1.3);
+            }
+
+            // 2. Componente Vx, marca transversal y punto sobre el eje X
+            if (Math.Abs(dx) >= 3.0) {
+                StylusPointCollection vxPts = CreateStrokePoints(start, projX, compThick, Math.Abs(dx) >= 12.0);
+                strokes.Add(new Stroke(vxPts, new DrawingAttributes {
+                    Color = xColor,
+                    Width = compThick,
+                    Height = compThick,
+                    FitToCurve = false,
+                    IsHighlighter = false
+                }));
+            }
+            AddAxisTickAndDotStrokes(strokes, projX, true, xColor);
+
+            // 3. Componente Vy, marca transversal y punto sobre el eje Y
+            if (Math.Abs(dy) >= 3.0) {
+                StylusPointCollection vyPts = CreateStrokePoints(start, projY, compThick, Math.Abs(dy) >= 12.0);
+                strokes.Add(new Stroke(vyPts, new DrawingAttributes {
+                    Color = yColor,
+                    Width = compThick,
+                    Height = compThick,
+                    FitToCurve = false,
+                    IsHighlighter = false
+                }));
+            }
+            AddAxisTickAndDotStrokes(strokes, projY, false, yColor);
+
+            // 4. Etiquetas vectorizadas con las coordenadas rectangulares X e Y sobre cada eje
+            double xMm = MetricUnits.PxToMm(dx);
+            double yMm = MetricUnits.PxToMm(-dy);
+            string textX = string.Format("X = {0:+0.#;-0.#;0} mm ({1:+0.0#;-0.0#;0} cm)", xMm, xMm / 10.0);
+            string textY = string.Format("Y = {0:+0.#;-0.#;0} mm ({1:+0.0#;-0.0#;0} cm)", yMm, yMm / 10.0);
+
+            FormattedText ftX;
+            double boxWX, boxHX;
+            MeasureLabelBox(textX, 11.5, new SolidColorBrush(xColor), out ftX, out boxWX, out boxHX);
+
+            FormattedText ftY;
+            double boxWY, boxHY;
+            MeasureLabelBox(textY, 11.5, new SolidColorBrush(yColor), out ftY, out boxWY, out boxHY);
+
+            Point labelXCenter;
+            Point labelYCenter;
+            ComputeAxisLabelCenters(start, end, boxWX, boxHX, boxWY, boxHY, out labelXCenter, out labelYCenter);
+
+            StrokeCollection labelXStrokes = CreateComponentLabelStrokes(labelXCenter, textX, xColor, xColor);
+            foreach (Stroke s in labelXStrokes) strokes.Add(s);
+
+            StrokeCollection labelYStrokes = CreateComponentLabelStrokes(labelYCenter, textY, yColor, yColor);
+            foreach (Stroke s in labelYStrokes) strokes.Add(s);
+
+            return strokes;
+        }
+
+        private static void ComputeAxisLabelCenters(
+            Point start, Point end,
+            double boxWidthX, double boxHeightX,
+            double boxWidthY, double boxHeightY,
+            out Point labelXCenter, out Point labelYCenter) {
+            double dx = end.X - start.X;
+            double dy = end.Y - start.Y;
+            Point projX = new Point(end.X, start.Y);
+            Point projY = new Point(start.X, end.Y);
+
+            double offsetYForX = (dy <= 0.0) ? Math.Max(18.0, boxHeightX / 2.0 + 8.0) : -Math.Max(18.0, boxHeightX / 2.0 + 8.0);
+            double labelXX = projX.X;
+            if (Math.Abs(dx) < (boxWidthX / 2.0 + 10.0)) {
+                labelXX = start.X + (dx >= 0.0 ? (boxWidthX / 2.0 + 10.0) : -(boxWidthX / 2.0 + 10.0));
+            }
+            labelXCenter = new Point(labelXX, projX.Y + offsetYForX);
+
+            double offsetXForY = (dx >= 0.0) ? -Math.Max(58.0, boxWidthY / 2.0 + 10.0) : Math.Max(58.0, boxWidthY / 2.0 + 10.0);
+            double labelYY = projY.Y;
+            if (Math.Abs(dy) < (boxHeightY / 2.0 + 10.0)) {
+                labelYY = start.Y + (dy <= 0.0 ? -(boxHeightY / 2.0 + 10.0) : (boxHeightY / 2.0 + 10.0));
+            }
+            labelYCenter = new Point(projY.X + offsetXForY, labelYY);
+        }
+
+        private static void DrawLabelBoxPreview(DrawingContext dc, Point center, FormattedText ft, double boxWidth, double boxHeight, Color borderColor) {
+            Rect boxRect = new Rect(center.X - boxWidth / 2.0, center.Y - boxHeight / 2.0, boxWidth, boxHeight);
+            Brush bgBrush = new SolidColorBrush(Color.FromArgb(230, 18, 22, 30));
+            Pen borderPen = new Pen(new SolidColorBrush(Color.FromArgb(220, borderColor.R, borderColor.G, borderColor.B)), 1.3);
+            dc.DrawRoundedRectangle(bgBrush, borderPen, boxRect, 4.0, 4.0);
+            dc.DrawText(ft, new Point(center.X - ft.Width / 2.0, center.Y - ft.Height / 2.0));
+        }
+
+        private static StrokeCollection CreateComponentLabelStrokes(Point center, string text, Color borderColor, Color textColor) {
+            StrokeCollection strokes = new StrokeCollection();
+            FormattedText ft;
+            double boxWidth;
+            double boxHeight;
+            MeasureLabelBox(text, 11.5, new SolidColorBrush(textColor), out ft, out boxWidth, out boxHeight);
+            AddRoundedBoxAndTextStrokes(strokes, center, ft, boxWidth, boxHeight, borderColor, textColor);
+            return strokes;
+        }
+
+        private static void AddRoundedBoxAndTextStrokes(
+            StrokeCollection strokes, Point labelCenter,
+            FormattedText ft, double boxWidth, double boxHeight,
+            Color borderColor, Color textColor) {
+            Rect boxRect = new Rect(
+                labelCenter.X - (boxWidth / 2.0),
+                labelCenter.Y - (boxHeight / 2.0),
+                boxWidth,
+                boxHeight
+            );
+
+            // Placa de fondo oscura protectora (oculta cuadrículas o trazos detrás del texto)
             StylusPointCollection bgPts = new StylusPointCollection();
             bgPts.Add(new StylusPoint(boxRect.Left + 2.0, labelCenter.Y));
             bgPts.Add(new StylusPoint(boxRect.Right - 2.0, labelCenter.Y));
@@ -418,7 +679,7 @@ namespace Trazalibre.Services {
             };
             strokes.Add(new Stroke(bgPts, bgAttrs));
 
-            // 3. Marco redondeado fino con el color del vector
+            // Marco redondeado fino
             double r = 4.0;
             StylusPointCollection borderPts = new StylusPointCollection();
             borderPts.Add(new StylusPoint(boxRect.Left + r, boxRect.Top));
@@ -436,7 +697,7 @@ namespace Trazalibre.Services {
             borderPts.Add(new StylusPoint(boxRect.Left + r, boxRect.Top));
 
             DrawingAttributes borderAttrs = new DrawingAttributes {
-                Color = color,
+                Color = borderColor,
                 Width = 1.4,
                 Height = 1.4,
                 FitToCurve = false,
@@ -444,13 +705,13 @@ namespace Trazalibre.Services {
             };
             strokes.Add(new Stroke(borderPts, borderAttrs));
 
-            // 4. Texto vectorizado nítido de alto contraste
+            // Texto vectorizado nítido de alto contraste
             Point textOrigin = new Point(labelCenter.X - (ft.Width / 2.0), labelCenter.Y - (ft.Height / 2.0));
             Geometry textGeom = ft.BuildGeometry(textOrigin);
             PathGeometry flatGeom = textGeom.GetFlattenedPathGeometry();
 
             DrawingAttributes textAttrs = new DrawingAttributes {
-                Color = Colors.Gold,
+                Color = textColor,
                 Width = 1.15,
                 Height = 1.15,
                 FitToCurve = false,
@@ -471,8 +732,63 @@ namespace Trazalibre.Services {
                 }
                 strokes.Add(new Stroke(pts, textAttrs));
             }
+        }
 
-            return strokes;
+        private static void AddDashedSegmentStrokes(StrokeCollection strokes, Point a, Point b, Color color, double width) {
+            double dx = b.X - a.X;
+            double dy = b.Y - a.Y;
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            if (dist < 2.0) return;
+
+            double dashLen = 6.0;
+            double gapLen = 4.0;
+            double step = dashLen + gapLen;
+            double ux = dx / dist;
+            double uy = dy / dist;
+
+            DrawingAttributes dashAttrs = new DrawingAttributes {
+                Color = color,
+                Width = width,
+                Height = width,
+                FitToCurve = false,
+                IsHighlighter = false
+            };
+
+            for (double pos = 0.0; pos < dist; pos += step) {
+                double endPos = Math.Min(dist, pos + dashLen);
+                StylusPointCollection pts = new StylusPointCollection();
+                pts.Add(new StylusPoint(a.X + ux * pos, a.Y + uy * pos));
+                pts.Add(new StylusPoint(a.X + ux * endPos, a.Y + uy * endPos));
+                strokes.Add(new Stroke(pts, dashAttrs));
+            }
+        }
+
+        private static void AddAxisTickAndDotStrokes(StrokeCollection strokes, Point point, bool verticalTick, Color color) {
+            StylusPointCollection tickPts = new StylusPointCollection();
+            if (verticalTick) {
+                tickPts.Add(new StylusPoint(point.X, point.Y - 7.0));
+                tickPts.Add(new StylusPoint(point.X, point.Y + 7.0));
+            } else {
+                tickPts.Add(new StylusPoint(point.X - 7.0, point.Y));
+                tickPts.Add(new StylusPoint(point.X + 7.0, point.Y));
+            }
+            strokes.Add(new Stroke(tickPts, new DrawingAttributes {
+                Color = color,
+                Width = 1.8,
+                Height = 1.8,
+                FitToCurve = false,
+                IsHighlighter = false
+            }));
+
+            StylusPointCollection dotPts = new StylusPointCollection();
+            dotPts.Add(new StylusPoint(point.X, point.Y));
+            strokes.Add(new Stroke(dotPts, new DrawingAttributes {
+                Color = color,
+                Width = 7.0,
+                Height = 7.0,
+                FitToCurve = false,
+                IsHighlighter = false
+            }));
         }
 
         private static double DistancePointToSegment(Point p, Point a, Point b) {

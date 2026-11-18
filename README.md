@@ -1,6 +1,6 @@
-# Trazalibre (Pizarra y Marcador sobre Pantalla) — `v1.4.0`
+# Trazalibre (Pizarra y Marcador sobre Pantalla) — `v1.5.0`
 
-**Trazalibre** (`v1.4.0`) es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada con precisión opcional de dibujo técnico CAD.
+**Trazalibre** (`v1.5.0`) es una aplicación de anotación en pantalla y pizarra interactiva inspirada en **IPEVO Annotator**, desarrollada en C# con WPF bajo una arquitectura estrictamente modular y desacoplada con precisión opcional de dibujo técnico CAD.
 
 ---
 
@@ -20,7 +20,7 @@ Imagina tener un **marcador mágico** con el que puedes dibujar, escribir o señ
 
 1. **Abrir la aplicación:**
    * Ejecuta `bin\Trazalibre.exe` (o compila al instante con doble clic en `build.bat`).
-   * Gracias al **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, se mostrará de inmediato la **Pantalla de Inicio** con el icono oficial, versión (`v1.4.0`), barra de progreso animada y **carga progresiva en 4 etapas** (*"⏳ Iniciando Trazalibre, por favor espere..."*).
+   * Gracias al **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, se mostrará de inmediato la **Pantalla de Inicio** con el icono oficial, versión (`v1.5.0`), barra de progreso animada y **carga progresiva en 4 etapas** (*"⏳ Iniciando Trazalibre, por favor espere..."*).
    * A continuación aparecerá la barra de herramientas flotante en la esquina superior derecha con el indicador **`● Activo`** y el selector de tema (**🌙 Oscuro**, **☀️ Claro** o **🔷 Azul CAD**). Puedes arrastrarla a cualquier lugar de la pantalla que prefieras.
 
 2. **Comenzar a dibujar:**
@@ -56,7 +56,7 @@ G:\Trazalibre\
 │
 ├───src\
 │   │   Program.cs               <- Arranque en dos fases con desacoplamiento JIT (NoInlining) y composición en 4 etapas
-│   │   AssemblyInfo.cs          <- Metadatos de ensamblado e información de versión Win32 (v1.4.0)
+│   │   AssemblyInfo.cs          <- Metadatos de ensamblado e información de versión Win32 (v1.5.0)
 │   │   app.ico                  <- Icono oficial multirresolución Win32
 │   │
 │   ├───Core\                    <- Contratos e interfaces base (Sin dependencias externas)
@@ -159,8 +159,8 @@ G:\Trazalibre\
 | **`Ctrl + 0`** | **Restablecer Zoom (100 %):** Devuelve la escala y el desplazamiento del lienzo a su posición original. |
 | **Botón central / `Espacio + Arrastrar`** | **Desplazamiento (Pan):** Mueve el lienzo ampliado manteniendo la relación 1:1 de todos los trazos. |
 | **Clic Derecho** | **Menú Contextual Rápido:** Cambia al instante entre Regla, Escuadras, Transportador, Compás, Ejes, Vector o Línea conservando el punto de trabajo en el lienzo. |
-| **`V`** | Herramienta **🏹 Vector con Medidas:** Traza un vector entre dos puntos con visor en tiempo real de módulo en mm/cm, ángulo trigonométrico y componentes $\Delta X, \Delta Y$, estampando la cota técnica permanente. |
-| **`D`** | **Acotación Vectorial (Módulo y Ángulo):** Alterna el estampado automático de la cota técnica en el lienzo con el formato `[módulo mm ∠ ángulo°]` perpendicular al vector. |
+| **`V`** | Herramienta **🏹 Vector con Medidas:** Traza un vector entre dos puntos (por arrastre o tecleando módulo `r` + `Tab` + ángulo `θ`), mostrando conversión Polar ➔ Rectangular y marcando sus proyecciones en los ejes X e Y. |
+| **`D`** | **Acotación Vectorial (Módulo y Ángulo):** Alterna el estampado automático de la cota técnica en el lienzo con el formato `[módulo mm ∠ ángulo°]` (y componentes X, Y si está activa la proyección). |
 
 ---
 
@@ -192,7 +192,7 @@ G:\Trazalibre\
     2. `⏳ Preparando lienzo multimonitor y cuadrículas...` (68%)
     3. `⏳ Configurando barra de herramientas y atajos...` (92%)
     4. `✅ ¡Trazalibre listo! Abriendo espacio de trabajo...` (100%)
-  * **Indicador de ejecución permanente:** En la barra de herramientas principal permanece visible el indicador verde **`● Activo`** y en la pantalla de inicio se muestra la versión **`v1.4.0`**, confirmando en todo momento que la aplicación está activa.
+  * **Indicador de ejecución permanente:** En la barra de herramientas principal permanece visible el indicador verde **`● Activo`** y en la pantalla de inicio se muestra la versión **`v1.5.0`**, confirmando en todo momento que la aplicación está activa.
 * **🎨 Selector de Aspecto / Tema de la Interfaz (`ThemeService.cs`):**
   * Desde el botón ubicado en el encabezado de la barra de herramientas puedes alternar en tiempo real entre tres temas visuales: **🌙 Oscuro**, **☀️ Claro** y **🔷 Azul CAD**.
 * **🖼️ 7 Modos de Fondo de Pantalla y Lienzos Técnicos (`BackgroundMode.cs` / `BackgroundService.cs`):**
@@ -226,10 +226,11 @@ Trazalibre incorpora soporte completo para diagramas de física, matemáticas y 
   * **Incremento dinámico:** Los ejes pueden incrementarse arrastrando con el ratón hacia afuera desde el origen, con la rueda del ratón, con las teclas `+` y `-`, o mediante los botones dedicados **`[ ➕ ]`** y **`[ ➖ ]`** en la barra flotante.
   * **Graduación numérica incremental:** Cada centímetro (10 mm / 50 px) incluye marcas métricas con su correspondiente número ($1, 2, 3, 4, 5...$ cm) en los cuatro cuadrantes.
 
-* **🏹 Vector entre Dos Puntos con Medidas (`V`):**
-  * Permite hacer clic en el Punto 1 (ej. en el origen `🎯 Origen (0, 0)`) y arrastrar hacia el Punto 2.
-  * Muestra una placa flotante HUD en tiempo real con el **Módulo** en mm y cm, el **Ángulo trigonométrico cartesiano** (`∠ θ°`) y las **Componentes ortogonales** ($\Delta X$ y $\Delta Y$).
-  * Al soltar, estampa el vector con su punta de flecha y la cota técnica de medidas permanente.
+* **🏹 Vector entre Dos Puntos y Conversión Polar ➔ Rectangular (`V`):**
+  * Permite hacer clic en el Punto 1 (ej. en el origen `🎯 Origen (0, 0)`) y arrastrar hacia el Punto 2, o bien hacer clic en el origen y **teclear directamente las coordenadas polares**: escribe el módulo $r$ en milímetros, pulsa **`Tab`** (o `Espacio`), escribe el ángulo $\theta$ en grados y presiona **`Enter`**.
+  * Muestra una placa flotante HUD en tiempo real con la conversión **Polar $\rightarrow$ Rectangular** (`r mm (cm) ∠ θ° ➔ X, Y mm`).
+  * **Marcado automático en el Eje X y Eje Y (`📐 Proyección Ejes X/Y: SÍ`):** Traza líneas punteadas de proyección ortogonal hasta ambos ejes, dibuja los vectores componentes $V_x$ (cian) sobre el eje X y $V_y$ (verde esmeralda) sobre el eje Y con marcas y puntos de intersección, y estampa las etiquetas `X = ... mm (... cm)` e `Y = ... mm (... cm)` directamente sobre cada eje (deshacible en un solo lote con `Ctrl + Z`).
+  * También compatible con el **Transportador 360° (`J`)** cuando el **Modo Vector** está activo.
 
 ---
 

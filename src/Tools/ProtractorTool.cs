@@ -150,6 +150,7 @@ namespace Trazalibre.Tools {
             if (_vectorStateChangedHandler != null) {
                 VectorService.VectorModeChanged += _vectorStateChangedHandler;
                 VectorService.DimensionModeChanged += _vectorStateChangedHandler;
+                VectorService.RectangularProjectionsChanged += _vectorStateChangedHandler;
             }
         }
 
@@ -165,6 +166,7 @@ namespace Trazalibre.Tools {
             if (_vectorStateChangedHandler != null) {
                 VectorService.VectorModeChanged -= _vectorStateChangedHandler;
                 VectorService.DimensionModeChanged -= _vectorStateChangedHandler;
+                VectorService.RectangularProjectionsChanged -= _vectorStateChangedHandler;
             }
         }
 
@@ -337,11 +339,12 @@ namespace Trazalibre.Tools {
             double rad = _currentAngle * Math.PI / 180.0;
             double targetX = _centerPoint.X + _lineLength * Math.Cos(rad);
             double targetY = _centerPoint.Y - _lineLength * Math.Sin(rad);
+            Point endPoint = new Point(targetX, targetY);
 
             double thickness = Math.Max(1.5, _context.CurrentSize);
             StylusPointCollection points = VectorService.CreateStrokePoints(
                 _centerPoint,
-                new Point(targetX, targetY),
+                endPoint,
                 thickness,
                 VectorService.IsVectorMode
             );
@@ -355,22 +358,37 @@ namespace Trazalibre.Tools {
             };
 
             Stroke lineStroke = new Stroke(points, attrs);
-            _context.AddStroke(lineStroke);
+            StrokeCollection batch = new StrokeCollection();
+
+            if (VectorService.IsVectorMode && VectorService.ShowRectangularProjections) {
+                StrokeCollection projStrokes = VectorService.CreateRectangularProjectionStrokes(_centerPoint, endPoint, thickness);
+                if (projStrokes != null) {
+                    foreach (Stroke ps in projStrokes) {
+                        batch.Add(ps);
+                    }
+                }
+            }
+
+            batch.Add(lineStroke);
 
             if (VectorService.IsVectorMode && VectorService.IsDimensionEnabled) {
                 StrokeCollection dimStrokes = VectorService.CreateDimensionStrokes(
                     _centerPoint,
-                    new Point(targetX, targetY),
+                    endPoint,
                     _lineLength,
                     _currentAngle,
                     _context.CurrentColor,
                     thickness,
                     _context.Canvas.Strokes
                 );
-                if (dimStrokes != null && dimStrokes.Count > 0) {
-                    _context.AddStrokes(dimStrokes);
+                if (dimStrokes != null) {
+                    foreach (Stroke ds in dimStrokes) {
+                        batch.Add(ds);
+                    }
                 }
             }
+
+            _context.AddStrokes(batch);
         }
 
         public double CurrentAngle { get { return _currentAngle; } }
@@ -480,6 +498,10 @@ namespace Trazalibre.Tools {
             double needleRad = Angle * Math.PI / 180.0;
             double effLength = Math.Max(25.0, LineLength);
             Point needleEnd = new Point(c.X + effLength * Math.Cos(needleRad), c.Y - effLength * Math.Sin(needleRad));
+
+            if (VectorService.IsVectorMode && VectorService.ShowRectangularProjections) {
+                VectorService.DrawRectangularProjectionsPreview(dc, c, needleEnd);
+            }
 
             Brush needleBrush = new SolidColorBrush(Color);
             Pen needlePen = new Pen(needleBrush, Math.Max(2.5, Size * 0.8));

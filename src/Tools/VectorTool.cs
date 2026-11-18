@@ -35,6 +35,7 @@ namespace Trazalibre.Tools {
         private MouseButtonEventHandler _mouseUpHandler;
         private KeyEventHandler _keyDownHandler;
         private ContextMenuEventHandler _contextMenuOpeningHandler;
+        private EventHandler _vectorStateChangedHandler;
 
         private VectorState _state = VectorState.Idle;
         private Point _startPoint;
@@ -45,8 +46,34 @@ namespace Trazalibre.Tools {
         private double _confirmedAngleDeg;
         private bool _suppressNextContextMenu = false;
 
+        // Estado para entrada numérica directa en coordenadas polares (módulo r y ángulo θ)
+        private bool _isEnteringPolar = false;
+        private bool _editingAngleField = false;
+        private string _polarMagBuffer = string.Empty;
+        private string _polarAngleBuffer = string.Empty;
+
         public bool IsPlacingLabel {
             get { return _state == VectorState.PlacingLabel; }
+        }
+
+        public bool IsActiveOrPlacing {
+            get { return _state != VectorState.Idle; }
+        }
+
+        public bool IsEnteringPolar {
+            get { return _isEnteringPolar; }
+        }
+
+        public bool EditingAngleField {
+            get { return _editingAngleField; }
+        }
+
+        public string PolarMagBuffer {
+            get { return _polarMagBuffer; }
+        }
+
+        public string PolarAngleBuffer {
+            get { return _polarAngleBuffer; }
         }
 
         public void Activate(IAnnotationContext context) {
@@ -67,6 +94,7 @@ namespace Trazalibre.Tools {
 
             _state = VectorState.Idle;
             _suppressNextContextMenu = false;
+            ResetPolarInput();
             _visual.Visibility = Visibility.Visible;
             _visual.Color = _context.CurrentColor;
             _visual.Size = _context.CurrentSize;
@@ -80,6 +108,7 @@ namespace Trazalibre.Tools {
                 _mouseUpHandler = OnCanvasMouseUp;
                 _keyDownHandler = OnCanvasKeyDown;
                 _contextMenuOpeningHandler = OnCanvasContextMenuOpening;
+                _vectorStateChangedHandler = OnVectorStateChanged;
             }
 
             AttachEvents();
@@ -102,7 +131,21 @@ namespace Trazalibre.Tools {
 
             _state = VectorState.Idle;
             _suppressNextContextMenu = false;
+            ResetPolarInput();
             _context = null;
+        }
+
+        private void OnVectorStateChanged(object sender, EventArgs e) {
+            if (_visual != null) {
+                _visual.InvalidateVisual();
+            }
+        }
+
+        private void ResetPolarInput() {
+            _isEnteringPolar = false;
+            _editingAngleField = false;
+            _polarMagBuffer = string.Empty;
+            _polarAngleBuffer = string.Empty;
         }
 
         public void OnColorChanged(IAnnotationContext context, Color newColor) {
@@ -128,6 +171,11 @@ namespace Trazalibre.Tools {
             _context.Canvas.PreviewMouseUp += _mouseUpHandler;
             _context.Canvas.PreviewKeyDown += _keyDownHandler;
             _context.Canvas.ContextMenuOpening += _contextMenuOpeningHandler;
+
+            if (_vectorStateChangedHandler != null) {
+                VectorService.RectangularProjectionsChanged += _vectorStateChangedHandler;
+                VectorService.DimensionModeChanged += _vectorStateChangedHandler;
+            }
         }
 
         private void DetachEvents() {
@@ -138,12 +186,26 @@ namespace Trazalibre.Tools {
             _context.Canvas.PreviewMouseUp -= _mouseUpHandler;
             _context.Canvas.PreviewKeyDown -= _keyDownHandler;
             _context.Canvas.ContextMenuOpening -= _contextMenuOpeningHandler;
+
+            if (_vectorStateChangedHandler != null) {
+                VectorService.RectangularProjectionsChanged -= _vectorStateChangedHandler;
+                VectorService.DimensionModeChanged -= _vectorStateChangedHandler;
+            }
         }
 
         private void OnCanvasContextMenuOpening(object sender, ContextMenuEventArgs e) {
             if (_suppressNextContextMenu) {
                 _suppressNextContextMenu = false;
                 e.Handled = true;
+            }
+        }
+
+        private void CancelCurrentVector() {
+            _state = VectorState.Idle;
+            ResetPolarInput();
+            if (_visual != null) {
+                _visual.Reset();
+                _visual.InvalidateVisual();
             }
         }
 
@@ -167,8 +229,27 @@ namespace Trazalibre.Tools {
                 return;
             }
 
+            if (_state == VectorState.DraggingVector) {
+                if (e.LeftButton == MouseButtonState.Pressed) {
+                    Point clickEndPos = e.GetPosition(_context.Canvas);
+                    SnapResult endSnap = SnapService.FindSnapPoint(_context.Canvas.Strokes, clickEndPos);
+                    Point targetEnd = _isEnteringPolar ? _currentPoint : ResolveVectorEndPoint(clickEndPos, endSnap);
+                    ConfirmDraggingVector(targetEnd, _isEnteringPolar ? new SnapResult() : endSnap);
+                    e.Handled = true;
+                    return;
+                }
+                if (e.RightButton == MouseButtonState.Pressed) {
+                    _suppressNextContextMenu = true;
+                    CancelCurrentVector();
+                    e.Handled = true;
+                    return;
+                }
+                return;
+            }
+
             if (_state == VectorState.Idle && e.LeftButton == MouseButtonState.Pressed) {
                 _suppressNextContextMenu = false;
+                ResetPolarInput();
                 Point clickPos = e.GetPosition(_context.Canvas);
                 SnapResult snap = SnapService.FindSnapPoint(_context.Canvas.Strokes, clickPos);
 
@@ -220,7 +301,13 @@ namespace Trazalibre.Tools {
                 return;
             }
 
-            // Calculando punto 2 mientras se arrastra
+            // Si el usuario está escribiendo coordenadas polares exactas, no sobrescribirlas con el ratón
+            if (_isEnteringPolar) {
+                e.Handled = true;
+                return;
+            }
+
+            // Calculando punto 2 mientras se arrastra o se desplaza tras el primer clic
             SnapResult endSnap = SnapService.FindSnapPoint(_context.Canvas.Strokes, mousePos);
             Point effectivePoint = ResolveVectorEndPoint(mousePos, endSnap);
             _currentPoint = effectivePoint;
@@ -256,12 +343,52 @@ namespace Trazalibre.Tools {
             double fdx = finalEnd.X - _startPoint.X;
             double fdy = finalEnd.Y - _startPoint.Y;
             double fdist = Math.Sqrt(fdx * fdx + fdy * fdy);
+
+            // Si el usuario hizo un clic simple sin arrastrar, mantener activo el vector para mover o teclear r y θ
             if (fdist < 5.0) {
-                _state = VectorState.Idle;
+                double curDx = _currentPoint.X - _startPoint.X;
+                double curDy = _currentPoint.Y - _startPoint.Y;
+                if (Math.Sqrt(curDx * curDx + curDy * curDy) < 5.0) {
+                    double samplePx = MetricUnits.MmToPx(40.0);
+                    double sampleRad = 45.0 * Math.PI / 180.0;
+                    _currentPoint = new Point(
+                        _startPoint.X + samplePx * Math.Cos(sampleRad),
+                        _startPoint.Y - samplePx * Math.Sin(sampleRad)
+                    );
+                }
+
+                double sdx = _currentPoint.X - _startPoint.X;
+                double sdy = _currentPoint.Y - _startPoint.Y;
+                double sdist = Math.Sqrt(sdx * sdx + sdy * sdy);
+                double sAngle = ComputeCartesianAngleDeg(sdx, -sdy);
+                _labelCenter = VectorService.FindOptimalLabelCenterForDimension(_startPoint, _currentPoint, sdist, sAngle, _context.Canvas.Strokes);
+
                 if (_visual != null) {
-                    _visual.Reset();
+                    _visual.StartPoint = _startPoint;
+                    _visual.CurrentPoint = _currentPoint;
+                    _visual.LabelCenter = _labelCenter;
+                    _visual.SnapEnd = new SnapResult();
+                    _visual.IsActive = true;
+                    _visual.IsPlacingLabel = false;
                     _visual.InvalidateVisual();
                 }
+
+                e.Handled = true;
+                return;
+            }
+
+            ConfirmDraggingVector(finalEnd, endSnap);
+            e.Handled = true;
+        }
+
+        private void ConfirmDraggingVector(Point finalEnd, SnapResult endSnap) {
+            if (_context == null) return;
+
+            double fdx = finalEnd.X - _startPoint.X;
+            double fdy = finalEnd.Y - _startPoint.Y;
+            double fdist = Math.Sqrt(fdx * fdx + fdy * fdy);
+            if (fdist < 5.0) {
+                CancelCurrentVector();
                 return;
             }
 
@@ -290,19 +417,171 @@ namespace Trazalibre.Tools {
                     _visual.InvalidateVisual();
                 }
             }
-
-            e.Handled = true;
         }
 
         private void OnCanvasKeyDown(object sender, KeyEventArgs e) {
-            if (_state != VectorState.PlacingLabel) return;
+            if (_state == VectorState.PlacingLabel) {
+                if (e.Key == Key.Enter || e.Key == Key.Return || e.Key == Key.Space) {
+                    CommitVectorWithLabel(true, _labelCenter);
+                    e.Handled = true;
+                } else if (e.Key == Key.Escape) {
+                    CommitVectorWithLabel(false, _labelCenter);
+                    e.Handled = true;
+                }
+                return;
+            }
 
-            if (e.Key == Key.Enter || e.Key == Key.Return || e.Key == Key.Space) {
-                CommitVectorWithLabel(true, _labelCenter);
+            if (_state != VectorState.DraggingVector || _context == null) return;
+
+            ModifierKeys mods = Keyboard.Modifiers;
+
+            // 1. Escape: cancelar el vector actual
+            if (e.Key == Key.Escape) {
+                CancelCurrentVector();
                 e.Handled = true;
-            } else if (e.Key == Key.Escape) {
-                CommitVectorWithLabel(false, _labelCenter);
+                return;
+            }
+
+            // 2. Enter: confirmar el vector con la geometría polar actual
+            if (e.Key == Key.Enter || e.Key == Key.Return) {
+                ConfirmDraggingVector(_currentPoint, new SnapResult());
                 e.Handled = true;
+                return;
+            }
+
+            // 3. Tab o Espacio: alternar entre edición de módulo r (mm) y ángulo θ (°)
+            if (e.Key == Key.Tab || e.Key == Key.Space) {
+                _isEnteringPolar = true;
+                _editingAngleField = !_editingAngleField;
+                if (_visual != null) {
+                    _visual.InvalidateVisual();
+                }
+                e.Handled = true;
+                return;
+            }
+
+            // 4. Retroceso (Backspace)
+            if (e.Key == Key.Back) {
+                if (_editingAngleField) {
+                    if (_polarAngleBuffer.Length > 0) {
+                        _polarAngleBuffer = _polarAngleBuffer.Substring(0, _polarAngleBuffer.Length - 1);
+                    } else {
+                        _editingAngleField = false;
+                    }
+                } else if (_polarMagBuffer.Length > 0) {
+                    _polarMagBuffer = _polarMagBuffer.Substring(0, _polarMagBuffer.Length - 1);
+                }
+
+                if (string.IsNullOrEmpty(_polarMagBuffer) && string.IsNullOrEmpty(_polarAngleBuffer) && !_editingAngleField) {
+                    _isEnteringPolar = false;
+                } else {
+                    UpdateCurrentPointFromPolarInput();
+                }
+
+                if (_visual != null) {
+                    _visual.InvalidateVisual();
+                }
+                e.Handled = true;
+                return;
+            }
+
+            // 5. Signo negativo para ángulos (ej. -45°)
+            if ((e.Key == Key.Subtract || e.Key == Key.OemMinus) && _editingAngleField && string.IsNullOrEmpty(_polarAngleBuffer)) {
+                _isEnteringPolar = true;
+                _polarAngleBuffer = "-";
+                if (_visual != null) {
+                    _visual.InvalidateVisual();
+                }
+                e.Handled = true;
+                return;
+            }
+
+            // 6. Dígitos del 0 al 9
+            int digit = -1;
+            if (e.Key >= Key.D0 && e.Key <= Key.D9 && (mods & ModifierKeys.Shift) != ModifierKeys.Shift) {
+                digit = e.Key - Key.D0;
+            } else if (e.Key >= Key.NumPad0 && e.Key <= Key.NumPad9) {
+                digit = e.Key - Key.NumPad0;
+            }
+
+            if (digit >= 0) {
+                _isEnteringPolar = true;
+                if (_editingAngleField) {
+                    _polarAngleBuffer += digit.ToString(CultureInfo.InvariantCulture);
+                } else {
+                    _polarMagBuffer += digit.ToString(CultureInfo.InvariantCulture);
+                }
+                UpdateCurrentPointFromPolarInput();
+                e.Handled = true;
+                return;
+            }
+
+            // 7. Punto o coma decimal
+            if (e.Key == Key.OemPeriod || e.Key == Key.Decimal || e.Key == Key.OemComma) {
+                _isEnteringPolar = true;
+                if (_editingAngleField) {
+                    if (!_polarAngleBuffer.Contains(".")) {
+                        if (string.IsNullOrEmpty(_polarAngleBuffer) || _polarAngleBuffer == "-") {
+                            _polarAngleBuffer += "0";
+                        }
+                        _polarAngleBuffer += ".";
+                    }
+                } else {
+                    if (!_polarMagBuffer.Contains(".")) {
+                        if (string.IsNullOrEmpty(_polarMagBuffer)) {
+                            _polarMagBuffer = "0";
+                        }
+                        _polarMagBuffer += ".";
+                    }
+                }
+                if (_visual != null) {
+                    _visual.InvalidateVisual();
+                }
+                e.Handled = true;
+            }
+        }
+
+        private void UpdateCurrentPointFromPolarInput() {
+            double curDx = _currentPoint.X - _startPoint.X;
+            double curDy = -(_currentPoint.Y - _startPoint.Y);
+            double curDist = Math.Sqrt(curDx * curDx + curDy * curDy);
+            double fallbackDist = curDist >= 10.0 ? curDist : MetricUnits.MmToPx(40.0);
+            double fallbackAngle = curDist >= 10.0 ? ComputeCartesianAngleDeg(curDx, curDy) : 45.0;
+
+            double rPx = fallbackDist;
+            double parsedR;
+            if (!string.IsNullOrEmpty(_polarMagBuffer) &&
+                double.TryParse(_polarMagBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out parsedR) &&
+                parsedR > 0.0) {
+                rPx = MetricUnits.MmToPx(parsedR);
+            }
+
+            double angDeg = fallbackAngle;
+            double parsedAng;
+            if (!string.IsNullOrEmpty(_polarAngleBuffer) &&
+                _polarAngleBuffer != "-" &&
+                double.TryParse(_polarAngleBuffer, NumberStyles.Any, CultureInfo.InvariantCulture, out parsedAng)) {
+                angDeg = parsedAng;
+            }
+
+            double rad = angDeg * Math.PI / 180.0;
+            _currentPoint = new Point(_startPoint.X + rPx * Math.Cos(rad), _startPoint.Y - rPx * Math.Sin(rad));
+
+            double dx = _currentPoint.X - _startPoint.X;
+            double dy = _currentPoint.Y - _startPoint.Y;
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            if (dist >= 8.0) {
+                double normAng = ComputeCartesianAngleDeg(dx, -dy);
+                _labelCenter = VectorService.FindOptimalLabelCenterForDimension(_startPoint, _currentPoint, dist, normAng, _context.Canvas.Strokes);
+            }
+
+            if (_visual != null) {
+                _visual.CurrentPoint = _currentPoint;
+                _visual.LabelCenter = _labelCenter;
+                _visual.SnapEnd = new SnapResult();
+                _visual.IsActive = true;
+                _visual.IsPlacingLabel = false;
+                _visual.InvalidateVisual();
             }
         }
 
@@ -351,7 +630,19 @@ namespace Trazalibre.Tools {
             };
 
             Stroke vectorStroke = new Stroke(points, attrs);
-            StrokeCollection batch = new StrokeCollection { vectorStroke };
+            StrokeCollection batch = new StrokeCollection();
+
+            // 1b. Agregar primero las proyecciones y marcas rectangulares sobre Eje X y Eje Y
+            if (VectorService.ShowRectangularProjections) {
+                StrokeCollection projStrokes = VectorService.CreateRectangularProjectionStrokes(_startPoint, _confirmedEndPoint, thickness);
+                if (projStrokes != null) {
+                    foreach (Stroke ps in projStrokes) {
+                        batch.Add(ps);
+                    }
+                }
+            }
+
+            batch.Add(vectorStroke);
 
             // 2. Crear etiqueta técnica de medidas si corresponde
             if (includeDimension) {
@@ -377,6 +668,7 @@ namespace Trazalibre.Tools {
             _context.AddStrokes(batch);
 
             _state = VectorState.Idle;
+            ResetPolarInput();
             if (_visual != null) {
                 _visual.Reset();
                 _visual.InvalidateVisual();
@@ -437,6 +729,11 @@ namespace Trazalibre.Tools {
             double dy = p2.Y - p1.Y;
             double dist = Math.Sqrt(dx * dx + dy * dy);
 
+            // 1b. Previsualizar proyecciones y marcas en Eje X y Eje Y (Polar -> Rectangular)
+            if (dist >= 8.0) {
+                VectorService.DrawRectangularProjectionsPreview(dc, p1, p2);
+            }
+
             // 2. Dibujar flecha del vector en tiempo real
             Brush mainBrush = new SolidColorBrush(Color);
             Pen linePen = new Pen(mainBrush, Math.Max(2.0, Size));
@@ -471,16 +768,25 @@ namespace Trazalibre.Tools {
             if (IsPlacingLabel) {
                 VectorService.DrawDimensionPreviewAt(dc, p1, p2, LabelCenter, dist, angleDeg, Color);
 
-                string helpLine1 = string.Format("📏 Módulo: {0:0.0} mm ({1:0.00} cm)  |  ∠ {2:0.0}°  |  ΔX: {3:+0.0;-0.0;0.0}  ΔY: {4:+0.0;-0.0;0.0} mm", mm, cm, angleDeg, dxMm, dyMm);
+                string helpLine1 = string.Format("📏 Polar: {0:0.0} mm ({1:0.00} cm) ∠ {2:0.0}°  ➔  📐 Rectangular: X = {3:+0.0;-0.0;0.0} mm, Y = {4:+0.0;-0.0;0.0} mm", mm, cm, angleDeg, dxMm, dyMm);
                 string helpLine2 = "🏷️ Mueve el ratón y haz clic izquierdo para colocar la medida  |  [Enter] Automático  |  [Clic derecho / Esc] Sin medida";
                 DrawHudBox(dc, p1, p2, dist, dx, dy, helpLine1, helpLine2, true);
                 return;
             }
 
-            // 6. Durante el arrastre del vector: mostrar placa HUD con módulo, ángulo y componentes
-            string line1 = string.Format("📏 Módulo: {0:0.0} mm ({1:0.00} cm)  |  ∠ {2:0.0}°", mm, cm, angleDeg);
-            string line2 = string.Format("📐 ΔX: {0:+0.0;-0.0;0.0} mm  |  ΔY: {1:+0.0;-0.0;0.0} mm", dxMm, dyMm);
-            DrawHudBox(dc, p1, p2, dist, dx, dy, line1, line2, false);
+            // 6. Durante el arrastre / entrada polar: mostrar placa HUD con conversión Polar -> Rectangular
+            string line1 = string.Format("📏 Polar: {0:0.0} mm ({1:0.00} cm) ∠ {2:0.0}°  ➔  📐 Rectangular: X = {3:+0.0;-0.0;0.0} mm, Y = {4:+0.0;-0.0;0.0} mm", mm, cm, angleDeg, dxMm, dyMm);
+            string line2;
+            if (_tool != null && _tool.IsEnteringPolar) {
+                string magText = string.IsNullOrEmpty(_tool.PolarMagBuffer) ? string.Format("{0:0.#}", mm) : _tool.PolarMagBuffer;
+                string angText = string.IsNullOrEmpty(_tool.PolarAngleBuffer) ? string.Format("{0:0.#}", angleDeg) : _tool.PolarAngleBuffer;
+                string magIndicator = !_tool.EditingAngleField ? "_" : "";
+                string angIndicator = _tool.EditingAngleField ? "_" : "";
+                line2 = string.Format("⌨️ Entrada Polar: Módulo r = [{0}{1}] mm  |  Ángulo θ = [{2}{3}]°  ([Tab] cambiar r/θ | [Enter] trazar | [Esc] cancelar)", magText, magIndicator, angText, angIndicator);
+            } else {
+                line2 = "⌨️ Teclea Módulo y [Tab] Ángulo para entrada polar exacta  |  Clic o soltar para fijar";
+            }
+            DrawHudBox(dc, p1, p2, dist, dx, dy, line1, line2, true);
         }
 
         private void DrawHudBox(DrawingContext dc, Point p1, Point p2, double dist, double dx, double dy, string line1, string line2, bool fixedTop) {
@@ -508,7 +814,9 @@ namespace Trazalibre.Tools {
                 if (ny > 0) { nx = -nx; ny = -ny; }
                 double offset = 26.0;
                 Point mid = new Point((p1.X + p2.X) / 2.0 + nx * offset, (p1.Y + p2.Y) / 2.0 + ny * offset);
-                boxRect = new Rect(mid.X - (boxWidth / 2.0), mid.Y - (boxHeight / 2.0), boxWidth, boxHeight);
+                double bx = Math.Max(14.0, mid.X - (boxWidth / 2.0));
+                double by = Math.Max(14.0, mid.Y - (boxHeight / 2.0));
+                boxRect = new Rect(bx, by, boxWidth, boxHeight);
             }
 
             Brush bgBrush = new SolidColorBrush(Color.FromArgb(235, 18, 22, 28));

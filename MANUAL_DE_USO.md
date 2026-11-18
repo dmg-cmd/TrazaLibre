@@ -1,5 +1,5 @@
-# Manual de Uso Oficial de Trazalibre (`v1.4.0`)
-*Aplicación de Anotación en Pantalla, Pizarra Interactiva y Dibujo Técnico CAD — Versión actual: **v1.4.0***
+# Manual de Uso Oficial de Trazalibre (`v1.5.0`)
+*Aplicación de Anotación en Pantalla, Pizarra Interactiva y Dibujo Técnico CAD — Versión actual: **v1.5.0***
 
 ---
 
@@ -49,7 +49,7 @@
 
 ### Paso 1: Abrir la aplicación
 - Haz doble clic sobre el archivo ejecutable `bin\Trazalibre.exe` (o compila automáticamente haciendo doble clic en `build.bat`).
-- Gracias al sistema de **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, aparecerá de inmediato la **Pantalla de Inicio** con el icono oficial, la versión (`v1.4.0`), una barra de progreso fluida y una **carga progresiva en 4 etapas animadas** (*"⏳ Iniciando Trazalibre, por favor espere..."*, carga de instrumentos CAD, preparación del lienzo multimonitor y configuración de barra/atajos).
+- Gracias al sistema de **arranque instantáneo en dos fases con desacoplamiento JIT (`NoInlining`)**, aparecerá de inmediato la **Pantalla de Inicio** con el icono oficial, la versión (`v1.5.0`), una barra de progreso fluida y una **carga progresiva en 4 etapas animadas** (*"⏳ Iniciando Trazalibre, por favor espere..."*, carga de instrumentos CAD, preparación del lienzo multimonitor y configuración de barra/atajos).
 - Acto seguido, se abrirá la barra de herramientas flotante en la esquina superior derecha de la pantalla con el indicador verde **`● Activo`** en su encabezado.
 - Puedes hacer clic sobre cualquier espacio libre de esa barra para arrastrarla y acomodarla donde te resulte más cómoda, o cambiar su aspecto visual entre **🌙 Oscuro**, **☀️ Claro** y **🔷 Azul CAD**.
 
@@ -231,17 +231,23 @@ Desplegando el menú **`📐 Geometría:`** o haciendo **clic derecho sobre el l
 Trazalibre cuenta con un motor especializado para física, ingeniería y matemáticas vectoriales:
 
 ### 🏹 Herramienta Vector con Medidas (`V`)
-- **Propósito:** Trazar vectores entre dos puntos específicos con indicación instantánea de magnitudes y cotas permanentes.
-- **Cómo usarlo:**
+- **Propósito:** Trazar vectores entre dos puntos específicos con indicación instantánea de magnitudes, conversión polar a rectangular y cotas permanentes.
+- **Cómo usarlo (arrastre, 2 clics o entrada polar exacta por teclado):**
   1. Haz clic en el **Punto 1** (por ejemplo, el origen `🎯 Origen (0, 0)` de los ejes o cualquier vértice previo).
-  2. Arrastra el ratón hacia el **Punto 2**:
-     - Verás la flecha orientada en tiempo real.
-     - Se desplegará una placa flotante HUD con:
-       - **Módulo / Longitud:** en milímetros y centímetros (ej. `45.0 mm (4.50 cm)`).
-       - **Ángulo trigonométrico:** medido en sentido antihorario respecto al semieje $+X$ horizontal (ej. `∠ 36.9°`).
-       - **Componentes cartesianas:** incrementos ortogonales `ΔX` y `ΔY`.
+  2. **Define el vector de dos maneras:**
+     - **Con el ratón:** Arrastra (o haz un segundo clic) hacia el **Punto 2**.
+     - **Por teclado (Coordenadas Polares $(r, \theta)$ exactas):** Tras hacer clic en el punto inicial, escribe directamente el **módulo $r$** en milímetros (ej. `50`), presiona **`Tab`** (o `Espacio`) para cambiar al campo angular, escribe el **ángulo $\theta$** en grados (ej. `30` o `-45`) y presiona **`Enter`**.
+     - Verás en tiempo real la placa HUD con la equivalencia **Polar $\rightarrow$ Rectangular** (`Polar: r mm (cm) ∠ θ° ➔ Rectangular: X = ... mm, Y = ... mm`).
      - Si el cursor se aproxima a otro extremo, se activará el recuadro magnético (`🧲 Punto Final` o `🧲 Punta de Vector`).
-  3. **Soltar el ratón:** Se estampa atómicamente el vector y su cota técnica con las medidas exactas.
+  3. **Confirmar:** Al soltar el ratón (o presionar `Enter` tras el ingreso polar), puedes ubicar la cota técnica y estampar atómicamente el vector junto con sus proyecciones en los ejes X e Y.
+
+### 📐 Conversión de Coordenadas Polares a Rectangulares (Proyección en Eje X y Eje Y)
+- Con el conmutador **`📐 Proyección Ejes X/Y: SÍ`** activo (disponible en la barra flotante y en el menú contextual de clic derecho), al trazar un vector polar $(r, \theta)$ mediante **Vector con Medidas (`V`)** o el **Transportador (`J`)** en Modo Vector, Trazalibre calcula automáticamente $X = r \cdot \cos(\theta)$ e $Y = r \cdot \sin(\theta)$ y marca en el lienzo:
+  - **Líneas punteadas de proyección ortogonal** desde la punta del vector hacia el eje horizontal $X$ y el eje vertical $Y$.
+  - **Vectores componentes y marcas sobre ambos ejes:** componente $V_x$ en color cian sobre el **eje X** y componente $V_y$ en color verde esmeralda sobre el **eje Y**, con marcas transversales y puntos de intersección.
+  - **Etiquetas rectangulares sobre cada eje:** `X = ... mm (... cm)` en el eje X e `Y = ... mm (... cm)` en el eje Y.
+  - **Cota combinada del vector:** Muestra tanto las coordenadas polares como las rectangulares en formato `[r mm ∠ θ° ➔ (X: ...; Y: ... mm)]`.
+  - Todo el diagrama queda agrupado en un único lote atómico compatible con **`Ctrl + Z`**.
 
 ### 🏹 Conmutador de Modo Vector Global
 - Permite que cualquier trazo realizado con la **Regla**, las **Escuadras**, el **Transportador** o la **Línea Recta** incorpore de forma automática una **punta de flecha orientada** en su extremo final.
@@ -249,9 +255,9 @@ Trazalibre cuenta con un motor especializado para física, ingeniería y matemá
 ### 🏷️ Acotación Técnica Automática (`D`)
 - Presiona la tecla **`D`** para activar la estampa de cotas.
 - Mientras dibujas el vector, verás un indicador dorado en tiempo real:  
-  `[ 45.0 mm ∠ 30.0° ]`
+  `[ 45.0 mm ∠ 30.0°  ➔  (X: +39; Y: +22.5 mm) ]`
 - Al soltar el trazo, la cota se graba de forma permanente como dibujo vectorial junto al vector, colocada ortogonalmente para garantizar una visibilidad óptima.
-- La cota incluye el **módulo** (en milímetros reales) y el **ángulo de inclinación** (en grados sexagesimales respecto a la horizontal).
+- La cota incluye el **módulo** (en milímetros reales), el **ángulo de inclinación** (en grados sexagesimales respecto a la horizontal) y, si la proyección X/Y está activa, las **coordenadas rectangulares** equivalentes.
 
 ### 🧲 Suma de Vectores ("Cabeza a cola")
 - Gracias al sistema de imantación a extremos (`SnapService`), al iniciar un nuevo vector cerca de la punta del anterior, el cursor se imantará automáticamente al vértice (`🧲 Punta de Vector`), permitiendo componer polígonos de fuerzas y sumas vectoriales exactas.

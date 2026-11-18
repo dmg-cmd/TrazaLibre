@@ -487,7 +487,7 @@ namespace Trazalibre.UI {
                 BorderBrush = new SolidColorBrush(VectorService.IsDimensionEnabled ? Colors.LightGreen : Color.FromArgb(80, 255, 255, 255)),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(6, 4, 6, 4),
-                Margin = new Thickness(0, 0, 0, 8),
+                Margin = new Thickness(0, 0, 0, 4),
                 FontSize = 10.5,
                 FontWeight = FontWeights.SemiBold,
                 Cursor = Cursors.Hand
@@ -509,6 +509,40 @@ namespace Trazalibre.UI {
             };
 
             mainStack.Children.Add(dimToggleBtn);
+
+            // Botón conmutador de Proyección en Ejes X e Y (Conversión Polar -> Rectangular)
+            Color rectAccent = Color.FromRgb(0, 220, 255);
+            Button rectProjToggleBtn = new Button {
+                Content = VectorService.ShowRectangularProjections ? "📐 Proyección Ejes X/Y: SÍ" : "📐 Proyección Ejes X/Y: NO",
+                Foreground = VectorService.ShowRectangularProjections ? Brushes.LightCyan : Brushes.White,
+                Background = new SolidColorBrush(VectorService.ShowRectangularProjections ? Color.FromArgb(70, 0, 220, 255) : Color.FromArgb(40, 255, 255, 255)),
+                BorderBrush = new SolidColorBrush(VectorService.ShowRectangularProjections ? rectAccent : Color.FromArgb(80, 255, 255, 255)),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(6, 4, 6, 4),
+                Margin = new Thickness(0, 0, 0, 8),
+                FontSize = 10.5,
+                FontWeight = FontWeights.SemiBold,
+                Cursor = Cursors.Hand,
+                ToolTip = "Marca las componentes rectangulares (X, Y) y sus proyecciones sobre el eje X y el eje Y"
+            };
+
+            Action updateRectProjBtn = () => {
+                bool on = VectorService.ShowRectangularProjections;
+                rectProjToggleBtn.Content = on ? "📐 Proyección Ejes X/Y: SÍ" : "📐 Proyección Ejes X/Y: NO";
+                rectProjToggleBtn.Foreground = on ? Brushes.LightCyan : Brushes.White;
+                rectProjToggleBtn.Background = new SolidColorBrush(on ? Color.FromArgb(70, 0, 220, 255) : Color.FromArgb(40, 255, 255, 255));
+                rectProjToggleBtn.BorderBrush = new SolidColorBrush(on ? rectAccent : Color.FromArgb(80, 255, 255, 255));
+            };
+
+            rectProjToggleBtn.Click += (s, e) => {
+                VectorService.ToggleRectangularProjections();
+            };
+
+            VectorService.RectangularProjectionsChanged += (s, e) => {
+                Dispatcher.Invoke(new Action(updateRectProjBtn));
+            };
+
+            mainStack.Children.Add(rectProjToggleBtn);
 
             // 3. Desplegable de Sellos y Widget de Número
             _stampContainerBorder = CreateDropdownRow("⭐ Sellos:", out _stampComboBox);

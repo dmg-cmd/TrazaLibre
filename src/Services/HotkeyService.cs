@@ -63,10 +63,20 @@ namespace Trazalibre.Services {
                 }
             }
 
-            // Si VectorTool está ubicando manualmente la etiqueta de medidas, permitirle procesar Enter, Espacio y Escape
+            // Si VectorTool está definiendo un vector o ubicando manualmente la etiqueta de medidas,
+            // permitirle procesar entrada numérica polar, Tab, Espacio, Enter, Backspace y Escape
             Trazalibre.Tools.VectorTool vectorTool = _registry.ActiveTool as Trazalibre.Tools.VectorTool;
-            if (vectorTool != null && vectorTool.IsPlacingLabel) {
-                if (e.Key == Key.Escape || e.Key == Key.Enter || e.Key == Key.Return || e.Key == Key.Space) {
+            if (vectorTool != null && vectorTool.IsActiveOrPlacing) {
+                bool isCtrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+                if (!isCtrl && (
+                    (e.Key >= Key.D0 && e.Key <= Key.D9) ||
+                    (e.Key >= Key.NumPad0 && e.Key <= Key.NumPad9) ||
+                    e.Key == Key.OemPeriod || e.Key == Key.Decimal || e.Key == Key.OemComma ||
+                    e.Key == Key.Subtract || e.Key == Key.OemMinus ||
+                    e.Key == Key.Add || e.Key == Key.OemPlus ||
+                    e.Key == Key.Tab || e.Key == Key.Back ||
+                    e.Key == Key.Enter || e.Key == Key.Return ||
+                    e.Key == Key.Space || e.Key == Key.Escape)) {
                     return;
                 }
             }

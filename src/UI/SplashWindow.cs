@@ -113,7 +113,7 @@ namespace Trazalibre.UI {
             };
             titleRow.Children.Add(titleText);
 
-            string verString = "v1.4.0";
+            string verString = "v1.5.0";
             try {
                 Version v = Assembly.GetExecutingAssembly().GetName().Version;
                 if (v != null) {

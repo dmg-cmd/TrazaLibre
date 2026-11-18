@@ -192,6 +192,10 @@ namespace Trazalibre.Services {
                     () => { VectorService.ToggleDimensionMode(); },
                     VectorService.IsDimensionEnabled));
                 menu.Items.Add(CreateItem(
+                    "📐 Marcar en Eje X y Eje Y (Polar ➔ Rect)",
+                    () => { VectorService.ToggleRectangularProjections(); },
+                    VectorService.ShowRectangularProjections));
+                menu.Items.Add(CreateItem(
                     "📍 Ubicar Medida con el Ratón (Manual)",
                     () => { VectorService.ToggleManualLabelPlacement(); },
                     VectorService.ManualLabelPlacement));
